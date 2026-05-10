@@ -1,4 +1,4 @@
-export default function Home() {
+export default function Inicio() {
   return (
     <div>
       <h1>Capit24 Terminal</h1>
