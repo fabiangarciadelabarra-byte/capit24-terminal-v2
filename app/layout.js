@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Capit24 Terminal",
   description: "Terminal financiero en tiempo real",
@@ -10,3 +12,4 @@ export default function RootLayout({ children }) {
     </html>
   );
 }
+
