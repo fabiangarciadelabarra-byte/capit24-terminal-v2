@@ -1,8 +1,8 @@
-export default function Inicio() {
+export default function Page() {
   return (
     <div>
-      <h1>Capit24 Terminal</h1>
-      <p>Bienvenido a la nueva versión.</p>
+      <h1>Terminal</h1>
+      <p>Ruta funcional</p>
     </div>
   );
 }
