@@ -6,8 +6,9 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const coin = searchParams.get("coin") || "bitcoin";
+    const days = searchParams.get("days") || "1";
 
-    const url = `https://api.coingecko.com/api/v3/coins/${coin}/market_chart?vs_currency=usd&days=1&interval=hourly`;
+    const url = `https://api.coingecko.com/api/v3/coins/${coin}/market_chart?vs_currency=usd&days=${days}`;
 
     const { data } = await axios.get(url);
 
