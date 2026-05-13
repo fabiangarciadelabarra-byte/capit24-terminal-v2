@@ -26,14 +26,15 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("CoinCap error:", error.message);
+    console.error("CoinCap error:", error?.message || error);
 
     return Response.json({
       BTC: { price: null, error: true },
       ETH: { price: null, error: true }
-    });
+    }, { status: 500 });
   }
 }
+
 
 
 
