@@ -10,16 +10,16 @@ export default function Page() {
   if (error) return <p style={{ padding: 20 }}>Error al cargar precios</p>;
 
   const coins = [
-    { key: "BTC", name: "Bitcoin (BTC)" },
-    { key: "ETH", name: "Ethereum (ETH)" },
-    { key: "SOL", name: "Solana (SOL)" },
-    { key: "BNB", name: "Binance Coin (BNB)" },
-    { key: "XRP", name: "XRP (XRP)" },
-    { key: "ADA", name: "Cardano (ADA)" },
-    { key: "DOGE", name: "Dogecoin (DOGE)" },
-    { key: "AVAX", name: "Avalanche (AVAX)" },
-    { key: "DOT", name: "Polkadot (DOT)" },
-    { key: "TRX", name: "Tron (TRX)" }
+    { key: "BTC", name: "Bitcoin (BTC)", api: "bitcoin" },
+    { key: "ETH", name: "Ethereum (ETH)", api: "ethereum" },
+    { key: "SOL", name: "Solana (SOL)", api: "solana" },
+    { key: "BNB", name: "Binance Coin (BNB)", api: "binancecoin" },
+    { key: "XRP", name: "XRP (XRP)", api: "ripple" },
+    { key: "ADA", name: "Cardano (ADA)", api: "cardano" },
+    { key: "DOGE", name: "Dogecoin (DOGE)", api: "dogecoin" },
+    { key: "AVAX", name: "Avalanche (AVAX)", api: "avalanche-2" },
+    { key: "DOT", name: "Polkadot (DOT)", api: "polkadot" },
+    { key: "TRX", name: "Tron (TRX)", api: "tron" },
   ];
 
   return (
@@ -32,7 +32,7 @@ export default function Page() {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: "20px"
+          gap: "20px",
         }}
       >
         {coins.map((c) => (
@@ -42,10 +42,10 @@ export default function Page() {
             price={data[c.key].usd}
             change={data[c.key].usd_24h_change}
             marketCap={data[c.key].usd_market_cap}
+            coinId={c.api}
           />
         ))}
       </div>
     </div>
   );
 }
-
