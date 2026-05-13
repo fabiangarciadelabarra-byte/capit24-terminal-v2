@@ -1,30 +1,36 @@
 "use client";
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
+import PriceCard from "./components/PriceCard";
 
 export default function Page() {
   const { data, loading, error } = useCryptoPrices();
 
-  if (loading) return <p>Cargando precios...</p>;
-  if (error) return <p>Error al cargar precios</p>;
+  if (loading) return <p style={{ padding: 20 }}>Cargando precios...</p>;
+  if (error) return <p style={{ padding: 20 }}>Error al cargar precios</p>;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Capit24 Terminal</h1>
+    <div style={{ padding: 40 }}>
+      <h1 style={{ fontSize: "32px", marginBottom: "30px" }}>
+        Capit24 Terminal — Market Overview
+      </h1>
 
-      <div style={{ marginTop: 20 }}>
-        <h2>Bitcoin (BTC)</h2>
-        <p>Precio: ${data.BTC.price.toLocaleString()}</p>
-        <p>Cambio 24h: {data.BTC.change24h.toFixed(2)}%</p>
-        <p>Market Cap: ${data.BTC.marketCap.toLocaleString()}</p>
-      </div>
+      <div style={{ display: "flex", gap: "20px" }}>
+        <PriceCard
+          title="Bitcoin (BTC)"
+          price={data.BTC.price}
+          change={data.BTC.change24h}
+          marketCap={data.BTC.marketCap}
+        />
 
-      <div style={{ marginTop: 20 }}>
-        <h2>Ethereum (ETH)</h2>
-        <p>Precio: ${data.ETH.price.toLocaleString()}</p>
-        <p>Cambio 24h: {data.ETH.change24h.toFixed(2)}%</p>
-        <p>Market Cap: ${data.ETH.marketCap.toLocaleString()}</p>
+        <PriceCard
+          title="Ethereum (ETH)"
+          price={data.ETH.price}
+          change={data.ETH.change24h}
+          marketCap={data.ETH.marketCap}
+        />
       </div>
     </div>
   );
 }
+
