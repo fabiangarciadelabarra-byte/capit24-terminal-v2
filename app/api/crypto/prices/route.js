@@ -52,3 +52,4 @@ export async function GET() {
     return Response.json({ error: "Failed to fetch prices" }, { status: 500 });
   }
 }
+
