@@ -5,28 +5,25 @@ import axios from "axios";
 export async function GET() {
   try {
     const { data } = await axios.get(
-      "https://api.coincap.io/v2/assets?ids=bitcoin,ethereum",
+      "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_market_cap=true&include_24hr_change=true",
       { timeout: 5000 }
     );
 
-    const btc = data.data.find(x => x.id === "bitcoin");
-    const eth = data.data.find(x => x.id === "ethereum");
-
     return Response.json({
       BTC: {
-        price: parseFloat(btc.priceUsd),
-        change24h: parseFloat(btc.changePercent24Hr),
-        marketCap: parseFloat(btc.marketCapUsd)
+        price: data.bitcoin.usd,
+        change24h: data.bitcoin.usd_24h_change,
+        marketCap: data.bitcoin.usd_market_cap
       },
       ETH: {
-        price: parseFloat(eth.priceUsd),
-        change24h: parseFloat(eth.changePercent24Hr),
-        marketCap: parseFloat(eth.marketCapUsd)
+        price: data.ethereum.usd,
+        change24h: data.ethereum.usd_24h_change,
+        marketCap: data.ethereum.usd_market_cap
       }
     });
 
   } catch (error) {
-    console.error("CoinCap error:", error?.message || error);
+    console.error("CoinGecko error:", error?.message || error);
 
     return Response.json({
       BTC: { price: null, error: true },
@@ -34,6 +31,7 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+
 
 
 
