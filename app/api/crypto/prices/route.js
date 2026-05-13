@@ -3,7 +3,8 @@ import axios from "axios";
 export async function GET() {
   try {
     const { data } = await axios.get(
-      "https://api.coincap.io/v2/assets?ids=bitcoin,ethereum"
+      "https://api.coincap.io/v2/assets?ids=bitcoin,ethereum",
+      { timeout: 5000 }
     );
 
     const btc = data.data.find(x => x.id === "bitcoin");
@@ -23,9 +24,14 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error("Error fetching crypto prices:", error);
-    return Response.json({ error: "Failed to fetch prices" }, { status: 500 });
+    console.error("CoinCap error:", error.message);
+
+    return Response.json({
+      BTC: { price: null, error: true },
+      ETH: { price: null, error: true }
+    });
   }
 }
+
 
 
