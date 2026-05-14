@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function useCryptoPrices(refreshInterval = 5000) {
-  const [data, setData] = useState(null);
+  const [prices, setPrices] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -11,7 +11,7 @@ export default function useCryptoPrices(refreshInterval = 5000) {
     try {
       const res = await fetch("/api/crypto/prices");
       const json = await res.json();
-      setData(json);
+      setPrices(json);
       setError(false);
     } catch (err) {
       setError(true);
@@ -28,5 +28,5 @@ export default function useCryptoPrices(refreshInterval = 5000) {
     return () => clearInterval(interval);
   }, []);
 
-  return { data, loading, error };
+  return { prices, loading, error };
 }
