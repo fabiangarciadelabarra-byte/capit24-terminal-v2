@@ -7,10 +7,12 @@ export default function BigChart({ data }) {
   const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
+  const initialized = useRef(false);
 
   // Crear el gráfico SOLO UNA VEZ
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (initialized.current) return;
+    initialized.current = true;
 
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
