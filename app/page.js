@@ -1,62 +1,66 @@
 "use client";
 
-import useCryptoPrice from "@/hooks/useCryptoPrice";
-import PriceCard from "@/components/PriceCard";
-import BigChart from "@/components/BigChart";
+import { useEffect, useState } from "react";
 
-export default function Page() {
-  const { data, loading, error } = useCryptoPrice();
+// 🔥 IMPORTS CORREGIDOS (rutas relativas)
+import PriceCard from "./components/PriceCard";
+import BigChart from "./components/BigChart";
+import useCryptoPrices from "./hooks/useCryptoPrices";
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error loading data</div>;
+export default function Home() {
+  const { prices, loading } = useCryptoPrices();
+  const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
+  const [candles, setCandles] = useState([]);
 
-  const coins = [
-    { key: "BTC" },
-    { key: "ETH" },
-    { key: "SOL" },
-    { key: "BNB" },
-    { key: "XRP" },
-    { key: "ADA" },
-    { key: "DOGE" },
-    { key: "AVAX" },
-    { key: "DOT" },
-    { key: "TRX" },
-  ];
+  // 🔥 Fetch de velas para el gráfico grande
+  useEffect(() => {
+    async function fetchCandles() {
+      try {
+        const res = await fetch(`/api/crypto/history?symbol=${selectedSymbol}`);
+        const data = await res.json();
+        setCandles(data);
+      } catch (error) {
+        console.error("Error fetching candles:", error);
+      }
+    }
 
-  // Datos de velas (temporal, luego lo conectamos a API real)
-  const candles = [
-    { time: "2024-05-01", open: 62000, high: 63000, low: 61000, close: 62500 },
-    { time: "2024-05-02", open: 62500, high: 64000, low: 62000, close: 63800 },
-    { time: "2024-05-03", open: 63800, high: 64500, low: 63000, close: 63200 },
-    { time: "2024-05-04", open: 63200, high: 63500, low: 62000, close: 62200 },
-  ];
+    fetchCandles();
+  }, [selectedSymbol]);
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1 style={{ fontSize: "32px", marginBottom: "30px" }}>
-        Capit24 Terminal – Dashboard
-      </h1>
+    <div style={{ padding: "20px" }}>
+      <h1>Capit24 Terminal</h1>
 
-      {/* Tarjetas */}
+      {/* 🔥 Tarjetas de precios */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
           gap: "20px",
+          marginTop: "20px",
         }}
       >
-        {coins.map((coin) => (
-          <PriceCard key={coin.key} symbol={coin.key} data={data} />
-        ))}
+        {loading ? (
+          <p>Cargando precios...</p>
+        ) : (
+          prices.map((crypto) => (
+            <div
+              key={crypto.symbol}
+              onClick={() => setSelectedSymbol(crypto.symbol)}
+              style={{ cursor: "pointer" }}
+            >
+              <PriceCard data={crypto} />
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Gráfico grande */}
-      <div style={{ marginTop: 40 }}>
-        <h2 style={{ fontSize: "24px", marginBottom: "16px" }}>
-          BTC/USDT – Candlestick
-        </h2>
-        <BigChart data={candles} />
-      </div>
+      {/* 🔥 Gráfico grande */}
+      <h2 style={{ marginTop: "40px" }}>
+        {selectedSymbol} – Candlestick Chart
+      </h2>
+
+      <BigChart data={candles} />
     </div>
   );
 }
