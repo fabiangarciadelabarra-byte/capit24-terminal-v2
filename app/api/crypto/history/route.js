@@ -8,16 +8,10 @@ export async function GET(req) {
 
     const symbol = searchParams.get("symbol") || "BTCUSDT";
 
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=500`;
+    // 🔥 Usamos proxy para evitar bloqueo de Binance a Vercel
+    const url = `https://corsproxy.io/?https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=500`;
 
-    const { data } = await axios.get(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json",
-        "Cache-Control": "no-cache",
-      },
-      timeout: 5000,
-    });
+    const { data } = await axios.get(url);
 
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
@@ -29,7 +23,7 @@ export async function GET(req) {
 
     return Response.json(candles);
   } catch (error) {
-    console.error("Binance error:", error?.message);
+    console.error("Proxy error:", error?.message);
     return Response.json([], { status: 200 });
   }
 }
