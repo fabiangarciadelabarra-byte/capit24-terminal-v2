@@ -8,17 +8,24 @@ export async function GET(req) {
     const coin = searchParams.get("coin") || "bitcoin";
     const days = searchParams.get("days") || "1";
 
-    const url = `https://api.coingecko.com/api/v3/coins/${coin}/market_chart?vs_currency=usd&days=${days}`;
+    // 🔥 USAMOS EL ENDPOINT CORRECTO PARA VELAS
+    const url = `https://api.coingecko.com/api/v3/coins/${coin}/ohlc?vs_currency=usd&days=${days}`;
 
     const { data } = await axios.get(url);
 
-    const prices = data.prices.map(([timestamp, price]) => ({
+    // 🔥 FORMATO CORRECTO PARA CANDLESTICK
+    const candles = data.map(([timestamp, open, high, low, close]) => ({
       time: Math.floor(timestamp / 1000),
-      value: price,
+      open,
+      high,
+      low,
+      close,
     }));
 
-    return Response.json(prices);
+    return Response.json(candles);
   } catch (error) {
+    console.error("OHLC error:", error?.message);
     return Response.json({ error: true }, { status: 500 });
   }
 }
+
