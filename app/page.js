@@ -47,16 +47,23 @@ export default function Home() {
           marginTop: "20px",
         }}
       >
-        {loading || !Array.isArray(prices) ? (
+        {loading || !prices ? (
           <p>Cargando precios...</p>
         ) : (
-          prices.map((crypto) => (
+          Object.entries(prices).map(([symbol, info]) => (
             <div
-              key={crypto.symbol}
-              onClick={() => setSelectedSymbol(crypto.symbol)}
+              key={symbol}
+              onClick={() => setSelectedSymbol(symbol + "USDT")}
               style={{ cursor: "pointer" }}
             >
-              <PriceCard data={crypto} />
+              <PriceCard
+                data={{
+                  symbol,
+                  price: info.usd,
+                  market_cap: info.usd_market_cap,
+                  change_24h: info.usd_24h_change,
+                }}
+              />
             </div>
           ))
         )}
