@@ -1,4 +1,4 @@
-"use client";
+"use client"; 
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import PriceCard from "./components/PriceCard";
