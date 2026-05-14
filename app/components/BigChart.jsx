@@ -4,14 +4,14 @@ import { useEffect, useRef } from "react";
 import { createChart } from "lightweight-charts";
 
 export default function BigChart({ data }) {
-  const chartContainerRef = useRef(null);
+  const containerRef = useRef(null);
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
 
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (!containerRef.current) return;
 
-    // 🔥 Limpia el gráfico anterior antes de crear uno nuevo
+    // 🔥 Destruir gráfico anterior ANTES de crear uno nuevo
     if (chartRef.current) {
       chartRef.current.remove();
       chartRef.current = null;
@@ -19,8 +19,8 @@ export default function BigChart({ data }) {
     }
 
     // Crear nuevo gráfico
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
+    const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
       height: 400,
       layout: {
         background: { color: "#000" },
@@ -44,7 +44,7 @@ export default function BigChart({ data }) {
     chartRef.current = chart;
     seriesRef.current = series;
 
-    // 🔥 Solo dibuja si hay velas válidas
+    // 🔥 Solo dibujar si hay velas válidas
     if (Array.isArray(data) && data.length > 0) {
       series.setData(data);
     }
@@ -52,7 +52,7 @@ export default function BigChart({ data }) {
     // Resize automático
     const handleResize = () => {
       chart.applyOptions({
-        width: chartContainerRef.current.clientWidth,
+        width: containerRef.current.clientWidth,
       });
     };
 
@@ -68,7 +68,7 @@ export default function BigChart({ data }) {
 
   return (
     <div
-      ref={chartContainerRef}
+      ref={containerRef}
       style={{
         width: "100%",
         height: "400px",
