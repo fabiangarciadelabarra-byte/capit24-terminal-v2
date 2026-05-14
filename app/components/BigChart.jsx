@@ -5,42 +5,51 @@ import { createChart } from "lightweight-charts";
 
 export default function BigChart({ data }) {
   const chartContainerRef = useRef(null);
+  const chartRef = useRef(null);
+  const seriesRef = useRef(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
+    // 🔥 Limpia el gráfico anterior antes de crear uno nuevo
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
+      seriesRef.current = null;
+    }
+
+    // Crear nuevo gráfico
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 400,
       layout: {
-        background: { color: "#020617" },
-        textColor: "#e5e7eb",
+        background: { color: "#000" },
+        textColor: "#fff",
       },
       grid: {
-        vertLines: { color: "#1f2937" },
-        horzLines: { color: "#1f2937" },
-      },
-      crosshair: {
-        mode: 1,
-      },
-      timeScale: {
-        borderColor: "#374151",
-      },
-      rightPriceScale: {
-        borderColor: "#374151",
+        vertLines: { color: "#222" },
+        horzLines: { color: "#222" },
       },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderVisible: false,
-      wickUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
+    const series = chart.addCandlestickSeries({
+      upColor: "#0f0",
+      downColor: "#f00",
+      borderUpColor: "#0f0",
+      borderDownColor: "#f00",
+      wickUpColor: "#0f0",
+      wickDownColor: "#f00",
     });
 
-    candleSeries.setData(data);
+    chartRef.current = chart;
+    seriesRef.current = series;
 
+    // 🔥 Solo dibuja si hay velas válidas
+    if (Array.isArray(data) && data.length > 0) {
+      series.setData(data);
+    }
+
+    // Resize automático
     const handleResize = () => {
       chart.applyOptions({
         width: chartContainerRef.current.clientWidth,
@@ -51,7 +60,9 @@ export default function BigChart({ data }) {
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      chart.remove();
+      if (chartRef.current) {
+        chartRef.current.remove();
+      }
     };
   }, [data]);
 
@@ -60,7 +71,8 @@ export default function BigChart({ data }) {
       ref={chartContainerRef}
       style={{
         width: "100%",
-        height: 400,
+        height: "400px",
+        marginTop: "20px",
       }}
     />
   );
