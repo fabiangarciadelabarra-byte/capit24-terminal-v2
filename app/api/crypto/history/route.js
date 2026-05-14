@@ -2,14 +2,8 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol") || "bitcoin";
 
-  // CoinGecko usa IDs, no tickers. Ejemplos:
-  // BTC = bitcoin
-  // ETH = ethereum
-  // SOL = solana
-  // XRP = ripple
-  // ADA = cardano
-
-  const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=1&interval=hourly`;
+  // CoinGecko: precios por minuto para 1 día
+  const url = `https://api.coingecko.com/api/v3/coins/${symbol}/market_chart?vs_currency=usd&days=1`;
 
   const response = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0" }
@@ -21,21 +15,29 @@ export async function GET(req) {
     return Response.json({ error: "CoinGecko error", data });
   }
 
-  // Convertimos el formato de CoinGecko a OHLC
-  const candles = data.prices.map((p, i) => {
-    const time = p[0] / 1000;
-    const price = p[1];
+  // Agrupar por hora
+  const groups = {};
 
-    // CoinGecko no da OHLC por hora, así que usamos el precio como close
-    return {
-      time,
-      open: price,
-      high: price,
-      low: price,
-      close: price
-    };
+  data.prices.forEach(([timestamp, price]) => {
+    const hour = Math.floor(timestamp / 1000 / 3600); // agrupación por hora
+
+    if (!groups[hour]) {
+      groups[hour] = {
+        time: hour * 3600,
+        open: price,
+        high: price,
+        low: price,
+        close: price
+      };
+    } else {
+      groups[hour].high = Math.max(groups[hour].high, price);
+      groups[hour].low = Math.min(groups[hour].low, price);
+      groups[hour].close = price;
+    }
   });
+
+  // Convertir a array ordenado
+  const candles = Object.values(groups).sort((a, b) => a.time - b.time);
 
   return Response.json(candles);
 }
-
