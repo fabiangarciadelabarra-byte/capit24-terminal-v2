@@ -8,8 +8,8 @@ export async function GET(req) {
 
     const symbol = searchParams.get("symbol") || "BTCUSDT";
 
-    // 🔥 Usamos proxy para evitar bloqueo de Binance a Vercel
-    const url = `https://corsproxy.io/?https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=500`;
+    // 🔥 Proxy que SÍ funciona desde Vercel
+    const url = `https://api.allorigins.win/raw?url=https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=500`;
 
     const { data } = await axios.get(url);
 
