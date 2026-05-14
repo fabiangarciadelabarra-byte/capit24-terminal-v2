@@ -8,17 +8,10 @@ export default function BigChart({ data }) {
   const chartRef = useRef(null);
   const seriesRef = useRef(null);
 
+  // Crear el gráfico SOLO UNA VEZ
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 🔥 Destruir gráfico anterior ANTES de crear uno nuevo
-    if (chartRef.current) {
-      chartRef.current.remove();
-      chartRef.current = null;
-      seriesRef.current = null;
-    }
-
-    // Crear nuevo gráfico
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       height: 400,
@@ -44,12 +37,6 @@ export default function BigChart({ data }) {
     chartRef.current = chart;
     seriesRef.current = series;
 
-    // 🔥 Solo dibujar si hay velas válidas
-    if (Array.isArray(data) && data.length > 0) {
-      series.setData(data);
-    }
-
-    // Resize automático
     const handleResize = () => {
       chart.applyOptions({
         width: containerRef.current.clientWidth,
@@ -60,10 +47,17 @@ export default function BigChart({ data }) {
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      if (chartRef.current) {
-        chartRef.current.remove();
-      }
+      chart.remove(); // 🔥 Se destruye SOLO UNA VEZ
     };
+  }, []);
+
+  // Actualizar datos SIN recrear el gráfico
+  useEffect(() => {
+    if (!seriesRef.current) return;
+
+    if (Array.isArray(data) && data.length > 0) {
+      seriesRef.current.setData(data);
+    }
   }, [data]);
 
   return (
