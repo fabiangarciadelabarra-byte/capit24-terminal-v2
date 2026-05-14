@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-// 🔥 IMPORTS CORREGIDOS (rutas relativas)
+// IMPORTS CORREGIDOS (rutas relativas)
 import PriceCard from "./components/PriceCard";
 import BigChart from "./components/BigChart";
 import useCryptoPrices from "./hooks/useCryptoPrices";
@@ -12,15 +12,22 @@ export default function Home() {
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
   const [candles, setCandles] = useState([]);
 
-  // 🔥 Fetch de velas para el gráfico grande
+  // Fetch de velas para el gráfico grande
   useEffect(() => {
     async function fetchCandles() {
       try {
         const res = await fetch(`/api/crypto/history?symbol=${selectedSymbol}`);
         const data = await res.json();
-        setCandles(data);
+
+        // Aseguramos que sea un array
+        if (Array.isArray(data)) {
+          setCandles(data);
+        } else {
+          setCandles([]);
+        }
       } catch (error) {
         console.error("Error fetching candles:", error);
+        setCandles([]);
       }
     }
 
@@ -31,7 +38,7 @@ export default function Home() {
     <div style={{ padding: "20px" }}>
       <h1>Capit24 Terminal</h1>
 
-      {/* 🔥 Tarjetas de precios */}
+      {/* Tarjetas de precios */}
       <div
         style={{
           display: "grid",
@@ -40,7 +47,7 @@ export default function Home() {
           marginTop: "20px",
         }}
       >
-        {loading ? (
+        {loading || !Array.isArray(prices) ? (
           <p>Cargando precios...</p>
         ) : (
           prices.map((crypto) => (
@@ -55,12 +62,12 @@ export default function Home() {
         )}
       </div>
 
-      {/* 🔥 Gráfico grande */}
+      {/* Gráfico grande */}
       <h2 style={{ marginTop: "40px" }}>
         {selectedSymbol} – Candlestick Chart
       </h2>
 
-      <BigChart data={candles} />
+      <BigChart data={Array.isArray(candles) ? candles : []} />
     </div>
   );
 }
