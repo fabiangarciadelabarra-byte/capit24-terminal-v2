@@ -18,6 +18,9 @@ export default function Home() {
   const [interval, setInterval] = useState("1h");
   const [days, setDays] = useState(1);
 
+  // NUEVO ESTADO PARA PRECIO EN TIEMPO REAL
+  const [livePrice, setLivePrice] = useState(null);
+
   // Fetch de velas para el gráfico grande
   useEffect(() => {
     async function fetchCandles() {
@@ -41,6 +44,24 @@ export default function Home() {
 
     fetchCandles();
   }, [selectedSymbol, interval, days]);
+
+  // PRECIO EN TIEMPO REAL (cada 5 segundos)
+  useEffect(() => {
+    async function fetchPrice() {
+      try {
+        const res = await fetch(`/api/crypto/price?symbol=${selectedSymbol}`);
+        const data = await res.json();
+        setLivePrice(data.price);
+      } catch (error) {
+        console.error("Error fetching live price:", error);
+      }
+    }
+
+    fetchPrice(); // llamada inicial
+    const intervalId = setInterval(fetchPrice, 5000); // cada 5s
+
+    return () => clearInterval(intervalId);
+  }, [selectedSymbol]);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -81,6 +102,11 @@ export default function Home() {
       <h2 style={{ marginTop: "40px" }}>
         {selectedSymbol} – Candlestick Chart ({interval}, {days}D)
       </h2>
+
+      {/* PRECIO EN TIEMPO REAL */}
+      <h3 style={{ marginTop: "10px", color: "#16c784" }}>
+        Precio actual: {livePrice ? livePrice.toLocaleString() : "Cargando..."}
+      </h3>
 
       {/* BOTONES DE INTERVALOS */}
       <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
