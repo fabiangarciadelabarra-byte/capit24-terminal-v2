@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import PriceCard from "./components/PriceCard";
 import BigChart from "./components/BigChart";
 import MarketTable from "./components/MarketTable";
+import AssetInfo from "./components/AssetInfo";
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
@@ -29,6 +30,9 @@ export default function Home() {
 
   // ESTADO DEL BUSCADOR
   const [query, setQuery] = useState("");
+
+  // ESTADO PARA INFO DEL ACTIVO
+  const [assetInfo, setAssetInfo] = useState(null);
 
   // FETCH DE VELAS
   useEffect(() => {
@@ -70,6 +74,21 @@ export default function Home() {
     const intervalId = setInterval(fetchPrice, 5000); // cada 5s
 
     return () => clearInterval(intervalId);
+  }, [selectedSymbol]);
+
+  // INFO DEL ACTIVO (PASO 6)
+  useEffect(() => {
+    async function loadInfo() {
+      try {
+        const res = await fetch(`/api/crypto/info?symbol=${selectedSymbol}`);
+        const data = await res.json();
+        setAssetInfo(data);
+      } catch (error) {
+        console.error("Error loading asset info:", error);
+      }
+    }
+
+    loadInfo();
   }, [selectedSymbol]);
 
   return (
@@ -208,6 +227,9 @@ export default function Home() {
 
       {/* GRÁFICO */}
       <BigChart data={Array.isArray(candles) ? candles : []} />
+
+      {/* PANEL DE INFORMACIÓN DEL ACTIVO (PASO 6) */}
+      <AssetInfo info={assetInfo} />
     </div>
   );
 }
