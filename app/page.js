@@ -9,10 +9,12 @@ import MarketTable from "./components/MarketTable";
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
+import useSearch from "./hooks/useSearch";
 
 export default function Home() {
   const { prices, loading } = useCryptoPrices();
   const { market, loading: marketLoading } = useMarketData();
+  const { results, loading: searchLoading, search } = useSearch();
 
   // ESTADOS PRINCIPALES
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
@@ -24,6 +26,9 @@ export default function Home() {
 
   // PRECIO EN TIEMPO REAL
   const [livePrice, setLivePrice] = useState(null);
+
+  // ESTADO DEL BUSCADOR
+  const [query, setQuery] = useState("");
 
   // FETCH DE VELAS
   useEffect(() => {
@@ -93,4 +98,116 @@ export default function Home() {
                 data={{
                   symbol,
                   price: info.usd,
-                  market_cap: info
+                  market_cap: info.usd_market_cap,
+                  change_24h: info.usd_24h_change,
+                }}
+              />
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* BUSCADOR */}
+      <div style={{ marginTop: "30px", marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Buscar BTC, ETH, SOL..."
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            search(e.target.value);
+          }}
+          style={{
+            width: "100%",
+            padding: "10px",
+            fontSize: "16px",
+            borderRadius: "6px",
+            border: "1px solid #333",
+            background: "#111",
+            color: "white",
+          }}
+        />
+
+        {/* RESULTADOS DEL BUSCADOR */}
+        {query.length > 1 && (
+          <div
+            style={{
+              background: "#111",
+              border: "1px solid #333",
+              marginTop: "5px",
+              borderRadius: "6px",
+              padding: "10px",
+            }}
+          >
+            {searchLoading ? (
+              <p>Buscando...</p>
+            ) : results.length === 0 ? (
+              <p>No se encontraron resultados</p>
+            ) : (
+              results.map((coin) => (
+                <div
+                  key={coin.id}
+                  onClick={() => {
+                    setSelectedSymbol(coin.symbol + "USDT");
+                    setQuery("");
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <img src={coin.image} width={24} height={24} />
+                  <span>
+                    {coin.name} ({coin.symbol})
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* PANEL DE MERCADO */}
+      <h2 style={{ marginTop: "40px" }}>Market Overview</h2>
+
+      {marketLoading ? (
+        <p>Cargando mercado...</p>
+      ) : (
+        <MarketTable data={market} onSelect={setSelectedSymbol} />
+      )}
+
+      {/* GRÁFICO GRANDE */}
+      <h2 style={{ marginTop: "40px" }}>
+        {selectedSymbol} – Candlestick Chart ({interval}, {days}D)
+      </h2>
+
+      {/* PRECIO EN TIEMPO REAL */}
+      <h3 style={{ marginTop: "10px", color: "#16c784" }}>
+        Precio actual: {livePrice ? livePrice.toLocaleString() : "Cargando..."}
+      </h3>
+
+      {/* BOTONES DE INTERVALOS */}
+      <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+        <button onClick={() => setInterval("5m")}>5m</button>
+        <button onClick={() => setInterval("15m")}>15m</button>
+        <button onClick={() => setInterval("1h")}>1h</button>
+        <button onClick={() => setInterval("4h")}>4h</button>
+      </div>
+
+      {/* BOTONES DE DÍAS */}
+      <div style={{ marginTop: "10px", display: "flex", gap: "10px" }}>
+        <button onClick={() => setDays(1)}>1D</button>
+        <button onClick={() => setDays(7)}>7D</button>
+        <button onClick={() => setDays(30)}>30D</button>
+        <button onClick={() => setDays(90)}>90D</button>
+        <button onClick={() => setDays(365)}>1Y</button>
+      </div>
+
+      {/* GRÁFICO */}
+      <BigChart data={Array.isArray(candles) ? candles : []} />
+    </div>
+  );
+}
