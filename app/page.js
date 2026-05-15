@@ -11,6 +11,7 @@ import NewsPanel from "./components/NewsPanel";
 import WatchlistBar from "./components/WatchlistBar";
 import AlertCreator from "./components/AlertCreator";
 import AlertNotifications from "./components/AlertNotifications";
+import SentimentPanel from "./components/SentimentPanel";   // ⭐ SENTIMIENTO
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
@@ -48,6 +49,9 @@ export default function Home() {
 
   // ESTADO PARA NOTICIAS
   const [news, setNews] = useState([]);
+
+  // ⭐ ESTADO PARA SENTIMIENTO
+  const [sentiment, setSentiment] = useState(null);
 
   // FETCH DE VELAS
   useEffect(() => {
@@ -136,6 +140,21 @@ export default function Home() {
 
     loadNews();
   }, [selectedSymbol]);
+
+  // ⭐ SENTIMIENTO DEL MERCADO
+  useEffect(() => {
+    async function loadSentiment() {
+      try {
+        const res = await fetch(`/api/crypto/sentiment`);
+        const data = await res.json();
+        setSentiment(data);
+      } catch (error) {
+        console.error("Error loading sentiment:", error);
+      }
+    }
+
+    loadSentiment();
+  }, []);
 
   return (
     <div style={{ padding: "20px" }}>
@@ -289,6 +308,9 @@ export default function Home() {
 
       {/* GRÁFICO */}
       <BigChart data={Array.isArray(candles) ? candles : []} />
+
+      {/* ⭐ PANEL DE SENTIMIENTO DEL MERCADO */}
+      <SentimentPanel sentiment={sentiment} />
 
       {/* PANEL DE INFORMACIÓN DEL ACTIVO */}
       <AssetInfo info={assetInfo} />
