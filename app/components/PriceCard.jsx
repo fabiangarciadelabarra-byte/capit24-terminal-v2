@@ -1,6 +1,6 @@
 "use client";
 
-export default function PriceCard({ data }) {
+export default function PriceCard({ data, toggle, watchlist }) {
   if (!data) return null;
 
   const {
@@ -29,6 +29,7 @@ export default function PriceCard({ data }) {
   return (
     <div
       style={{
+        position: "relative",
         padding: "20px",
         borderRadius: "10px",
         background: "#111",
@@ -37,6 +38,26 @@ export default function PriceCard({ data }) {
         boxShadow: "0 0 10px rgba(0,0,0,0.3)"
       }}
     >
+      {/* ⭐ BOTÓN DE FAVORITO */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggle(symbol + "USDT");
+        }}
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          background: "none",
+          border: "none",
+          fontSize: "22px",
+          cursor: "pointer",
+          color: watchlist.includes(symbol + "USDT") ? "gold" : "#555",
+        }}
+      >
+        ★
+      </button>
+
       <h2>{symbol}</h2>
 
       <p style={{ fontSize: "22px", margin: "10px 0" }}>
