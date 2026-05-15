@@ -3,7 +3,7 @@ export async function GET(req) {
   const symbol = searchParams.get("symbol");
 
   if (!symbol) {
-    return Response.json({ error: "Missing symbol" });
+    return Response.json([]);
   }
 
   const url = `https://cryptopanic.com/api/v1/posts/?auth_token=bb8e6e8b7f7a0b7b8a&currencies=${symbol}&public=true`;
@@ -15,15 +15,21 @@ export async function GET(req) {
 
     const data = await res.json();
 
+    // Protección total
+    if (!data || !Array.isArray(data.results)) {
+      return Response.json([]);
+    }
+
     const formatted = data.results.map((item) => ({
-      title: item.title,
-      source: item.source.title,
-      url: item.url,
-      published_at: item.published_at,
+      title: item.title || "Sin título",
+      source: item.source?.title || "Fuente desconocida",
+      url: item.url || "#",
+      published_at: item.published_at || null,
     }));
 
     return Response.json(formatted);
   } catch (error) {
-    return Response.json({ error: "News error", details: error });
+    return Response.json([]);
   }
 }
+
