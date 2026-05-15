@@ -7,6 +7,7 @@ import PriceCard from "./components/PriceCard";
 import BigChart from "./components/BigChart";
 import MarketTable from "./components/MarketTable";
 import AssetInfo from "./components/AssetInfo";
+import NewsPanel from "./components/NewsPanel";
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
@@ -33,6 +34,9 @@ export default function Home() {
 
   // ESTADO PARA INFO DEL ACTIVO
   const [assetInfo, setAssetInfo] = useState(null);
+
+  // ESTADO PARA NOTICIAS
+  const [news, setNews] = useState([]);
 
   // FETCH DE VELAS
   useEffect(() => {
@@ -89,6 +93,21 @@ export default function Home() {
     }
 
     loadInfo();
+  }, [selectedSymbol]);
+
+  // NOTICIAS DEL ACTIVO (PASO 7)
+  useEffect(() => {
+    async function loadNews() {
+      try {
+        const res = await fetch(`/api/crypto/news?symbol=${selectedSymbol}`);
+        const data = await res.json();
+        setNews(data);
+      } catch (error) {
+        console.error("Error loading news:", error);
+      }
+    }
+
+    loadNews();
   }, [selectedSymbol]);
 
   return (
@@ -228,8 +247,11 @@ export default function Home() {
       {/* GRÁFICO */}
       <BigChart data={Array.isArray(candles) ? candles : []} />
 
-      {/* PANEL DE INFORMACIÓN DEL ACTIVO (PASO 6) */}
+      {/* PANEL DE INFORMACIÓN DEL ACTIVO */}
       <AssetInfo info={assetInfo} />
+
+      {/* PANEL DE NOTICIAS */}
+      <NewsPanel news={news} />
     </div>
   );
 }
