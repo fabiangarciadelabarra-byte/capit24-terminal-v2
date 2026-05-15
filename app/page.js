@@ -8,12 +8,15 @@ import BigChart from "./components/BigChart";
 import MarketTable from "./components/MarketTable";
 import AssetInfo from "./components/AssetInfo";
 import NewsPanel from "./components/NewsPanel";
-import WatchlistBar from "./components/WatchlistBar";   // ⭐ IMPORTACIÓN NECESARIA
+import WatchlistBar from "./components/WatchlistBar";
+import AlertCreator from "./components/AlertCreator";
+import AlertNotifications from "./components/AlertNotifications";
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
 import useSearch from "./hooks/useSearch";
-import useWatchlist from "./hooks/useWatchlist";        // ⭐ IMPORTACIÓN NECESARIA
+import useWatchlist from "./hooks/useWatchlist";
+import useAlerts from "./hooks/useAlerts";
 
 export default function Home() {
   const { prices, loading } = useCryptoPrices();
@@ -22,6 +25,9 @@ export default function Home() {
 
   // ⭐ WATCHLIST
   const { watchlist, toggle } = useWatchlist();
+
+  // ⭐ ALERTAS
+  const { alerts, addAlert, markTriggered } = useAlerts();
 
   // ESTADOS PRINCIPALES
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
@@ -84,6 +90,22 @@ export default function Home() {
 
     return () => clearInterval(intervalId);
   }, [selectedSymbol]);
+
+  // ⭐ DISPARAR ALERTAS CUANDO CAMBIA EL PRECIO
+  useEffect(() => {
+    if (!livePrice) return;
+
+    alerts.forEach((alert, index) => {
+      if (alert.triggered) return;
+
+      if (
+        (alert.condition === "above" && livePrice >= alert.target) ||
+        (alert.condition === "below" && livePrice <= alert.target)
+      ) {
+        markTriggered(index);
+      }
+    });
+  }, [livePrice]);
 
   // INFO DEL ACTIVO
   useEffect(() => {
@@ -242,6 +264,12 @@ export default function Home() {
         Precio actual: {livePrice ? livePrice.toLocaleString() : "Cargando..."}
       </h3>
 
+      {/* ⭐ CREAR ALERTAS */}
+      <AlertCreator selectedSymbol={selectedSymbol} addAlert={addAlert} />
+
+      {/* ⭐ NOTIFICACIONES DE ALERTAS */}
+      <AlertNotifications alerts={alerts} />
+
       {/* BOTONES DE INTERVALOS */}
       <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
         <button onClick={() => setInterval("5m")}>5m</button>
@@ -270,4 +298,3 @@ export default function Home() {
     </div>
   );
 }
-     
