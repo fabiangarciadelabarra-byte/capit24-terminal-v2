@@ -13,7 +13,8 @@ import AlertCreator from "./components/AlertCreator";
 import AlertNotifications from "./components/AlertNotifications";
 import SentimentPanel from "./components/SentimentPanel";
 import OrderFlowPanel from "./components/OrderFlowPanel";
-import LiquidityMapPanel from "./components/LiquidityMapPanel";   // ⭐ LIQUIDITY MAP
+import LiquidityMapPanel from "./components/LiquidityMapPanel";
+import ScreenerPanel from "./components/ScreenerPanel";   // ⭐ SCREENER
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
@@ -316,6 +317,9 @@ export default function Home() {
 
       {/* ⭐ LIQUIDITY MAP PANEL */}
       <LiquidityMapPanel candles={candles} />
+
+      {/* ⭐ SCREENER PANEL */}
+      <ScreenerPanel market={market} />
 
       {/* ⭐ PANEL DE SENTIMIENTO DEL MERCADO */}
       <SentimentPanel sentiment={sentiment} />
