@@ -9,28 +9,44 @@ export default function ScreenerPanel({ market }) {
   const [minVolume, setMinVolume] = useState(0);
   const [minChange, setMinChange] = useState(-100);
 
-  // Filtrar
-  const filtered = market.filter(
-    (c) =>
-      c.total_volume >= minVolume &&
-      c.price_change_percentage_24h >= minChange
-  );
+  // Función segura para formatear números
+  const safeNumber = (value) =>
+    typeof value === "number" ? value.toLocaleString() : "—";
 
-  // Ordenar
-  const sorted = [...filtered].sort((a, b) => b[sortKey] - a[sortKey]);
+  const safePercent = (value) =>
+    typeof value === "number" ? value.toFixed(2) + "%" : "—";
 
-  // Top Movers
+  // Filtrar datos válidos
+  const filtered = market.filter((c) => {
+    const vol = c?.total_volume ?? 0;
+    const change = c?.price_change_percentage_24h ?? -999;
+
+    return vol >= minVolume && change >= minChange;
+  });
+
+  // Ordenar con protección
+  const sorted = [...filtered].sort((a, b) => {
+    const A = a?.[sortKey] ?? -999999999;
+    const B = b?.[sortKey] ?? -999999999;
+    return B - A;
+  });
+
+  // Top Gainers
   const topGainers = [...market]
+    .filter((c) => typeof c?.price_change_percentage_24h === "number")
     .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
     .slice(0, 5);
 
+  // Top Losers
   const topLosers = [...market]
+    .filter((c) => typeof c?.price_change_percentage_24h === "number")
     .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
     .slice(0, 5);
 
-  // Volatilidad (High Volatility)
+  // High Volatility
   const highVolatility = [...market]
-    .sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h)
+    .filter((c) => typeof c?.price_change_percentage_24h === "number")
+    .sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h))
     .slice(0, 5);
 
   return (
@@ -95,11 +111,11 @@ export default function ScreenerPanel({ market }) {
             }}
           >
             <span>
-              {coin.name} ({coin.symbol.toUpperCase()})
+              {coin?.name ?? "—"} ({coin?.symbol?.toUpperCase() ?? "—"})
             </span>
-            <span>${coin.current_price.toLocaleString()}</span>
-            <span>{coin.price_change_percentage_24h.toFixed(2)}%</span>
-            <span>Vol: {coin.total_volume.toLocaleString()}</span>
+            <span>${safeNumber(coin?.current_price)}</span>
+            <span>{safePercent(coin?.price_change_percentage_24h)}</span>
+            <span>Vol: {safeNumber(coin?.total_volume)}</span>
           </div>
         ))}
       </div>
@@ -108,21 +124,21 @@ export default function ScreenerPanel({ market }) {
       <h3 style={{ marginTop: "30px" }}>Top Gainers (24h)</h3>
       {topGainers.map((c) => (
         <p key={c.id} style={{ color: "#16c784" }}>
-          {c.name}: {c.price_change_percentage_24h.toFixed(2)}%
+          {c.name}: {safePercent(c.price_change_percentage_24h)}
         </p>
       ))}
 
       <h3 style={{ marginTop: "20px" }}>Top Losers (24h)</h3>
       {topLosers.map((c) => (
         <p key={c.id} style={{ color: "#ea3943" }}>
-          {c.name}: {c.price_change_percentage_24h.toFixed(2)}%
+          {c.name}: {safePercent(c.price_change_percentage_24h)}
         </p>
       ))}
 
       <h3 style={{ marginTop: "20px" }}>High Volatility</h3>
       {highVolatility.map((c) => (
         <p key={c.id} style={{ color: "#f3c623" }}>
-          {c.name}: {c.price_change_percentage_24h.toFixed(2)}%
+          {c.name}: {safePercent(c.price_change_percentage_24h)}
         </p>
       ))}
     </div>
