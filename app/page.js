@@ -11,7 +11,8 @@ import NewsPanel from "./components/NewsPanel";
 import WatchlistBar from "./components/WatchlistBar";
 import AlertCreator from "./components/AlertCreator";
 import AlertNotifications from "./components/AlertNotifications";
-import SentimentPanel from "./components/SentimentPanel";   // ⭐ SENTIMIENTO
+import SentimentPanel from "./components/SentimentPanel";
+import OrderFlowPanel from "./components/OrderFlowPanel";   // ⭐ ORDER FLOW
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
@@ -308,6 +309,9 @@ export default function Home() {
 
       {/* GRÁFICO */}
       <BigChart data={Array.isArray(candles) ? candles : []} />
+
+      {/* ⭐ ORDER FLOW PANEL */}
+      <OrderFlowPanel candles={candles} />
 
       {/* ⭐ PANEL DE SENTIMIENTO DEL MERCADO */}
       <SentimentPanel sentiment={sentiment} />
