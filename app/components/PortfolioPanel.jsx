@@ -34,4 +34,3 @@
 
 {/* GRÁFICO DE HISTORIAL */}
 <PortfolioHistoryChart />
-
