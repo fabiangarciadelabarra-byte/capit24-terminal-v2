@@ -12,7 +12,8 @@ import WatchlistBar from "./components/WatchlistBar";
 import AlertCreator from "./components/AlertCreator";
 import AlertNotifications from "./components/AlertNotifications";
 import SentimentPanel from "./components/SentimentPanel";
-import OrderFlowPanel from "./components/OrderFlowPanel";   // ⭐ ORDER FLOW
+import OrderFlowPanel from "./components/OrderFlowPanel";
+import LiquidityMapPanel from "./components/LiquidityMapPanel";   // ⭐ LIQUIDITY MAP
 
 import useCryptoPrices from "./hooks/useCryptoPrices";
 import useMarketData from "./hooks/useMarketData";
@@ -312,6 +313,9 @@ export default function Home() {
 
       {/* ⭐ ORDER FLOW PANEL */}
       <OrderFlowPanel candles={candles} />
+
+      {/* ⭐ LIQUIDITY MAP PANEL */}
+      <LiquidityMapPanel candles={candles} />
 
       {/* ⭐ PANEL DE SENTIMIENTO DEL MERCADO */}
       <SentimentPanel sentiment={sentiment} />
