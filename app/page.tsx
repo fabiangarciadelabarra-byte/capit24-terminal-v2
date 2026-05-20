@@ -66,11 +66,9 @@ export default function Home() {
         {market.slice(0, 4).map((coin: any) => (
           <PriceCard
             key={coin.id}
-            name={coin?.name ?? "—"}
-            symbol={coin?.symbol ?? "—"}
-            price={safeNumber(coin?.current_price)}
-            change={safePercent(coin?.price_change_percentage_24h)}
-            marketCap={safeNumber(coin?.market_cap)}
+            data={coin}
+            toggle={() => {}}
+            watchlist={false}
           />
         ))}
       </div>
