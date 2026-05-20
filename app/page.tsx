@@ -9,11 +9,11 @@ import LiquidityMapPanel from "./components/LiquidityMapPanel";
 import SentimentPanel from "./components/SentimentPanel";
 
 export default function Home() {
-  const [market, setMarket] = useState([]);
-  const [candles, setCandles] = useState([]);
-  const [orderflow, setOrderflow] = useState(null);
-  const [liquidity, setLiquidity] = useState(null);
-  const [sentiment, setSentiment] = useState(null);
+  const [market, setMarket] = useState<any[]>([]);
+  const [candles, setCandles] = useState<any[]>([]);
+  const [orderflow, setOrderflow] = useState<any>(null);
+  const [liquidity, setLiquidity] = useState<any>(null);
+  const [sentiment, setSentiment] = useState<any>(null);
 
   // Fetch Market Data
   useEffect(() => {
@@ -58,7 +58,13 @@ export default function Home() {
 
       {/* PRICE CARD */}
       <div style={{ marginTop: "20px" }}>
-        {market.length > 0 && <PriceCard data={market[0]} />}
+        {market.length > 0 && (
+          <PriceCard 
+            data={market[0]} 
+            toggle={() => {}} 
+            watchlist={[]} 
+          />
+        )}
       </div>
 
       {/* MARKET TABLE */}
