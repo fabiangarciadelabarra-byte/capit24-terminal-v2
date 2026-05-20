@@ -59,10 +59,10 @@ export default function Home() {
       {/* PRICE CARD */}
       <div style={{ marginTop: "20px" }}>
         {market.length > 0 && (
-          <PriceCard 
-            data={market[0]} 
-            toggle={() => {}} 
-            watchlist={[]} 
+          <PriceCard
+            data={market[0]}
+            toggle={() => {}}
+            watchlist={[]}
           />
         )}
       </div>
@@ -84,7 +84,7 @@ export default function Home() {
 
       {/* ORDER FLOW */}
       <div style={{ marginTop: "40px" }}>
-        {orderflow && <OrderFlowPanel data={orderflow} />}
+        {orderflow && <OrderFlowPanel candles={orderflow} />}
       </div>
 
       {/* LIQUIDITY MAP */}
