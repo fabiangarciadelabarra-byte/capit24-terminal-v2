@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -6,13 +8,32 @@ export async function GET(request) {
     const url =
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=200&page=1&sparkline=false";
 
-    const res = await fetch(url, {
-      headers: { "x-cg-demo-api-key": "CG-7f5f8c1f-4b2a-4b8a-8c1d-1234567890" }
-    });
+    const res = await fetch(url);
 
-    const data = await res.json();
+    // CoinGecko a veces devuelve HTML o texto → lo capturamos
+    const text = await res.text();
 
-    const filtered = data.filter(c =>
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("CoinGecko devolvió HTML o texto no JSON:", text);
+      return Response.json(
+        { error: "Invalid response from CoinGecko" },
+        { status: 500 }
+      );
+    }
+
+    // Validación: debe ser array
+    if (!Array.isArray(data)) {
+      console.error("CoinGecko NO devolvió un array:", data);
+      return Response.json(
+        { error: "Unexpected CoinGecko response" },
+        { status: 500 }
+      );
+    }
+
+    const filtered = data.filter((c) =>
       c.name.toLowerCase().includes(query.toLowerCase()) ||
       c.symbol.toLowerCase().includes(query.toLowerCase())
     );
@@ -20,6 +41,9 @@ export async function GET(request) {
     return Response.json(filtered);
   } catch (err) {
     console.error("Error fetching screener:", err);
-    return Response.json({ error: "Failed to fetch screener" }, { status: 500 });
+    return Response.json(
+      { error: "Failed to fetch screener" },
+      { status: 500 }
+    );
   }
 }
