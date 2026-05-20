@@ -89,7 +89,7 @@ export default function Home() {
 
       {/* LIQUIDITY MAP */}
       <div style={{ marginTop: "40px" }}>
-        {liquidity && <LiquidityMapPanel data={liquidity} />}
+        {liquidity && <LiquidityMapPanel candles={liquidity} />}
       </div>
 
       {/* SENTIMENT PANEL */}
