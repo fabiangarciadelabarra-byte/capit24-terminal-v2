@@ -10,7 +10,6 @@ import ScreenerPanel from "./components/ScreenerPanel";
 import SentimentPanel from "./components/SentimentPanel";
 
 export default function Home() {
-  // FIX: evitar error "never[]"
   const [market, setMarket] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,34 +74,35 @@ export default function Home() {
 
       {/* CHART PRINCIPAL */}
       <div style={{ marginTop: "40px" }}>
-        <BigChart />
+        <BigChart data={market} />
       </div>
 
       {/* TABLA DE MERCADO */}
       <div style={{ marginTop: "40px" }}>
-        <MarketTable market={market} />
+        <MarketTable data={market} />
       </div>
 
       {/* ORDER FLOW */}
       <div style={{ marginTop: "40px" }}>
-        <OrderFlowPanel />
+        <OrderFlowPanel data={market} />
       </div>
 
       {/* LIQUIDITY MAP */}
       <div style={{ marginTop: "40px" }}>
-        <LiquidityMapPanel />
+        <LiquidityMapPanel data={market} />
       </div>
 
       {/* SCREENER */}
       <div style={{ marginTop: "40px" }}>
-        <ScreenerPanel market={market} />
+        <ScreenerPanel data={market} />
       </div>
 
       {/* SENTIMENT */}
       <div style={{ marginTop: "40px" }}>
-        <SentimentPanel />
+        <SentimentPanel data={market} />
       </div>
     </div>
   );
 }
+
 
