@@ -94,7 +94,7 @@ export default function Home() {
 
       {/* SENTIMENT PANEL */}
       <div style={{ marginTop: "40px" }}>
-        {sentiment && <SentimentPanel data={sentiment} />}
+        {sentiment && <SentimentPanel sentiment={sentiment} />}
       </div>
     </div>
   );
