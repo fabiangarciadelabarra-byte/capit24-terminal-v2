@@ -10,7 +10,8 @@ import ScreenerPanel from "./components/ScreenerPanel";
 import SentimentPanel from "./components/SentimentPanel";
 
 export default function Home() {
-  const [market, setMarket] = useState([]);
+  // FIX: evitar error "never[]"
+  const [market, setMarket] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const safeNumber = (v: any) =>
@@ -106,3 +107,4 @@ export default function Home() {
     </div>
   );
 }
+
