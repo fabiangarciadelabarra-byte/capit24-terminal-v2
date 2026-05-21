@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -8,11 +10,17 @@ export async function GET(request) {
     // URL del Worker Cloudflare (proxy)
     const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
 
-    const response = await fetch(workerUrl);
+    const response = await fetch(workerUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
 
     if (!response.ok) {
       return new Response(
-        JSON.stringify({ error: "Error al obtener orderflow desde el proxy" }),
+        JSON.stringify({
+          error: "Error al obtener orderflow desde el proxy",
+          status: response.status
+        }),
         { status: 500 }
       );
     }
@@ -24,31 +32,32 @@ export async function GET(request) {
       return new Response(
         JSON.stringify({
           error: "Binance no devolvió trades válidos",
-          data,
+          data
         }),
         { status: 500 }
       );
     }
 
-    // Normalizamos el formato
+    // Normalización del formato
     const trades = data.map((t) => ({
       id: t.id,
       price: t.price,
       qty: t.qty,
       quoteQty: t.quoteQty,
       time: t.time,
-      isBuyerMaker: t.isBuyerMaker,
+      isBuyerMaker: t.isBuyerMaker
     }));
 
     return new Response(JSON.stringify(trades), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" }
     });
+
   } catch (error) {
     return new Response(
       JSON.stringify({
         error: "Error interno en /api/crypto/orderflow",
-        details: error.message,
+        details: error.message
       }),
       { status: 500 }
     );
