@@ -1,42 +1,58 @@
-export const dynamic = "force-dynamic";
-
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
+
     const symbol = searchParams.get("symbol") || "BTCUSDT";
     const interval = searchParams.get("interval") || "1h";
-    const limit = searchParams.get("limit") || "200";
+    const limit = searchParams.get("limit") || 500;
 
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    // URL del Worker Cloudflare (proxy)
+    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
-    const res = await fetch(url);
-    const text = await res.text();
+    const response = await fetch(workerUrl);
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("Binance devolvió HTML o texto no JSON:", text);
-      return Response.json({ error: "Invalid response from Binance" }, { status: 500 });
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ error: "Error al obtener candles desde el proxy" }),
+        { status: 500 }
+      );
     }
 
+    const data = await response.json();
+
+    // Validación mínima
     if (!Array.isArray(data)) {
-      console.error("Binance NO devolvió un array:", data);
-      return Response.json({ error: "Unexpected Binance response" }, { status: 500 });
+      return new Response(
+        JSON.stringify({
+          error: "Binance no devolvió velas válidas",
+          data,
+        }),
+        { status: 500 }
+      );
     }
 
-    const formatted = data.map(c => ({
-      time: c[0] / 1000,
-      open: parseFloat(c[1]),
-      high: parseFloat(c[2]),
-      low: parseFloat(c[3]),
-      close: parseFloat(c[4])
+    // Formato estándar OHLC
+    const candles = data.map((c) => ({
+      openTime: c[0],
+      open: c[1],
+      high: c[2],
+      low: c[3],
+      close: c[4],
+      volume: c[5],
+      closeTime: c[6],
     }));
 
-    return Response.json(formatted);
-
-  } catch (err) {
-    console.error("Error fetching candles:", err);
-    return Response.json({ error: "Failed to fetch candles" }, { status: 500 });
+    return new Response(JSON.stringify(candles), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        error: "Error interno en /api/crypto/candles",
+        details: error.message,
+      }),
+      { status: 500 }
+    );
   }
 }
