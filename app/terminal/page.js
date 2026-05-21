@@ -1,23 +1,29 @@
-import OrderbookBTC from "../components/OrderbookBTC";
-import TradesBTC from "../components/TradesBTC";
-import TickerBTC from "../components/TickerBTC";
-import KlineBTC from "../components/KlineBTC";
+import OrderbookBTC from "../../components/OrderbookBTC";
+import TradesBTC from "../../components/TradesBTC";
+import TickerBTC from "../../components/TickerBTC";
+import KlineBTC from "../../components/KlineBTC";
 
 export default function TerminalPage() {
   return (
     <main style={{ padding: "2rem" }}>
-      <h1>Capit24 Terminal — BTCUSDT</h1>
+      <h1>Capit24 Terminal — BTCUSDT (Tiempo Real)</h1>
 
-      <TickerBTC />
-      <hr />
+      <section style={{ marginBottom: "2rem" }}>
+        <TickerBTC />
+      </section>
 
-      <OrderbookBTC />
-      <hr />
+      <section style={{ marginBottom: "2rem" }}>
+        <OrderbookBTC />
+      </section>
 
-      <TradesBTC />
-      <hr />
+      <section style={{ marginBottom: "2rem" }}>
+        <TradesBTC />
+      </section>
 
-      <KlineBTC />
+      <section style={{ marginBottom: "2rem" }}>
+        <KlineBTC />
+      </section>
     </main>
   );
 }
+
