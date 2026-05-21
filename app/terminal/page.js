@@ -1,14 +1,14 @@
 "use client";
 
-import { useChartSettings } from "../../hooks/useChartSettings";
-import SymbolSelector from "../../components/SymbolSelector";
-import TimeframeSelector from "../../components/TimeframeSelector";
-import RealtimeCandleChart from "../../components/RealtimeCandleChart";
+import { useChartSettings } from "../hooks/useChartSettings";
+import SymbolSelector from "../components/SymbolSelector";
+import TimeframeSelector from "../components/TimeframeSelector";
+import RealtimeCandleChart from "../components/RealtimeCandleChart";
 
-import TickerBTC from "../../components/TickerBTC";
-import OrderbookBTC from "../../components/OrderbookBTC";
-import TradesBTC from "../../components/TradesBTC";
-import KlineBTC from "../../components/KlineBTC";
+import TickerBTC from "../components/TickerBTC";
+import OrderbookBTC from "../components/OrderbookBTC";
+import TradesBTC from "../components/TradesBTC";
+import KlineBTC from "../components/KlineBTC";
 
 export default function TerminalPage() {
   const { symbol, timeframe, setSymbol, setTimeframe } = useChartSettings();
