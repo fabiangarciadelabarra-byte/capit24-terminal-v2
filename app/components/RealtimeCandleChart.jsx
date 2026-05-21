@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createChart } from "lightweight-charts";
 import { useBinanceWS } from "../hooks/useBinanceWS";
 
@@ -8,12 +8,30 @@ export default function RealtimeCandleChart({ symbol, timeframe }) {
   const chartRef = useRef(null);
   const candleSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
+  const [ready, setReady] = useState(false);
 
   const stream = `${symbol}@kline_${timeframe}`;
   const kline = useBinanceWS(stream);
 
+  // Esperar a que el div tenga width real
   useEffect(() => {
     if (!chartRef.current) return;
+
+    const checkWidth = () => {
+      if (chartRef.current.clientWidth > 0) {
+        setReady(true);
+      }
+    };
+
+    checkWidth();
+    const interval = setInterval(checkWidth, 100);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Crear el chart solo cuando el div está listo
+  useEffect(() => {
+    if (!ready || !chartRef.current) return;
 
     const chart = createChart(chartRef.current, {
       width: chartRef.current.clientWidth,
@@ -43,8 +61,9 @@ export default function RealtimeCandleChart({ symbol, timeframe }) {
       window.removeEventListener("resize", resize);
       chart.remove();
     };
-  }, [symbol, timeframe]);
+  }, [ready, symbol, timeframe]);
 
+  // Actualizar velas
   useEffect(() => {
     if (!kline || !candleSeriesRef.current) return;
 
@@ -70,6 +89,7 @@ export default function RealtimeCandleChart({ symbol, timeframe }) {
       ref={chartRef}
       style={{
         width: "100%",
+        minWidth: "300px",
         height: "350px",
         marginBottom: "2rem",
         border: "1px solid #ddd",
