@@ -4,12 +4,16 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const symbol = searchParams.get("symbol") || "BTCUSDT";
-    const interval = searchParams.get("interval") || "1h";
-    const limit = searchParams.get("limit") || 500;
+    // FIX DEFINITIVO DEL PROBLEMA DEL SYMBOL
+    let symbol = searchParams.get("symbol");
+    if (!symbol || symbol === "null" || symbol === "undefined" || symbol.trim() === "") {
+      symbol = "BTCUSDT";
+    }
+
+    const limit = searchParams.get("limit") || 100;
 
     // URL del Worker Cloudflare (proxy)
-    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/depth&symbol=${symbol}&limit=${limit}`;
 
     const response = await fetch(workerUrl, {
       method: "GET",
@@ -19,7 +23,7 @@ export async function GET(request) {
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener candles desde el proxy",
+          error: "Error al obtener liquidez desde el proxy",
           status: response.status
         }),
         { status: 500 }
@@ -29,28 +33,17 @@ export async function GET(request) {
     const data = await response.json();
 
     // Validación mínima
-    if (!Array.isArray(data)) {
+    if (!data.bids || !data.asks) {
       return new Response(
         JSON.stringify({
-          error: "Binance no devolvió velas válidas",
+          error: "Binance no devolvió bids/asks válidos",
           data
         }),
         { status: 500 }
       );
     }
 
-    // Formato estándar OHLC
-    const candles = data.map((c) => ({
-      openTime: c[0],
-      open: c[1],
-      high: c[2],
-      low: c[3],
-      close: c[4],
-      volume: c[5],
-      closeTime: c[6]
-    }));
-
-    return new Response(JSON.stringify(candles), {
+    return new Response(JSON.stringify(data), {
       status: 200,
       headers: { "Content-Type": "application/json" }
     });
@@ -58,7 +51,7 @@ export async function GET(request) {
   } catch (error) {
     return new Response(
       JSON.stringify({
-        error: "Error interno en /api/crypto/candles",
+        error: "Error interno en /api/crypto/liquidity",
         details: error.message
       }),
       { status: 500 }
