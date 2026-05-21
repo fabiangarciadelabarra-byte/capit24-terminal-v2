@@ -3,7 +3,13 @@ export const dynamic = "force-dynamic";
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const symbol = searchParams.get("symbol") || "BTCUSDT";
+
+    // FIX DEFINITIVO DEL PROBLEMA DEL SYMBOL
+    let symbol = searchParams.get("symbol");
+    if (!symbol || symbol === "null" || symbol === "undefined" || symbol.trim() === "") {
+      symbol = "BTCUSDT";
+    }
+
     const limit = searchParams.get("limit") || 100;
 
     // URL del Worker Cloudflare (proxy)
