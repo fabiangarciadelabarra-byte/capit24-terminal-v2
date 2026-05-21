@@ -1,63 +1,55 @@
-export const dynamic = "force-dynamic";
-
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
+
     const symbol = searchParams.get("symbol") || "BTCUSDT";
-    const limit = searchParams.get("limit") || "500";
+    const limit = searchParams.get("limit") || 1000;
 
-    const url = `https://api.binance.com/api/v3/aggTrades?symbol=${symbol}&limit=${limit}`;
+    // URL del Worker Cloudflare (proxy)
+    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
 
-    const res = await fetch(url);
+    const response = await fetch(workerUrl);
 
-    // Binance a veces devuelve HTML o texto → lo capturamos
-    const text = await res.text();
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      console.error("Binance devolvió HTML o texto no JSON:", text);
-      return Response.json(
-        { error: "Invalid response from Binance" },
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({ error: "Error al obtener orderflow desde el proxy" }),
         { status: 500 }
       );
     }
 
-    // Validación: debe ser array
+    const data = await response.json();
+
+    // Validación mínima
     if (!Array.isArray(data)) {
-      console.error("Binance NO devolvió un array:", data);
-      return Response.json(
-        { error: "Unexpected Binance response" },
+      return new Response(
+        JSON.stringify({
+          error: "Binance no devolvió trades válidos",
+          data,
+        }),
         { status: 500 }
       );
     }
 
-    let buyVolume = 0;
-    let sellVolume = 0;
+    // Normalizamos el formato
+    const trades = data.map((t) => ({
+      id: t.id,
+      price: t.price,
+      qty: t.qty,
+      quoteQty: t.quoteQty,
+      time: t.time,
+      isBuyerMaker: t.isBuyerMaker,
+    }));
 
-    data.forEach((t) => {
-      const qty = parseFloat(t.q || 0);
-      if (t.m) {
-        // m = true → buyer is market maker → SELL
-        sellVolume += qty;
-      } else {
-        // m = false → buyer is taker → BUY
-        buyVolume += qty;
-      }
+    return new Response(JSON.stringify(trades), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
     });
-
-    return Response.json({
-      symbol,
-      buyVolume,
-      sellVolume,
-      delta: buyVolume - sellVolume,
-      trades: data.length,
-    });
-  } catch (err) {
-    console.error("Error fetching orderflow:", err);
-    return Response.json(
-      { error: "Failed to fetch orderflow" },
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        error: "Error interno en /api/crypto/orderflow",
+        details: error.message,
+      }),
       { status: 500 }
     );
   }
