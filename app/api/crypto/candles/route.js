@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -9,11 +11,17 @@ export async function GET(request) {
     // URL del Worker Cloudflare (proxy)
     const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
-    const response = await fetch(workerUrl);
+    const response = await fetch(workerUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
 
     if (!response.ok) {
       return new Response(
-        JSON.stringify({ error: "Error al obtener candles desde el proxy" }),
+        JSON.stringify({
+          error: "Error al obtener candles desde el proxy",
+          status: response.status
+        }),
         { status: 500 }
       );
     }
@@ -25,7 +33,7 @@ export async function GET(request) {
       return new Response(
         JSON.stringify({
           error: "Binance no devolvió velas válidas",
-          data,
+          data
         }),
         { status: 500 }
       );
@@ -39,18 +47,19 @@ export async function GET(request) {
       low: c[3],
       close: c[4],
       volume: c[5],
-      closeTime: c[6],
+      closeTime: c[6]
     }));
 
     return new Response(JSON.stringify(candles), {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" }
     });
+
   } catch (error) {
     return new Response(
       JSON.stringify({
         error: "Error interno en /api/crypto/candles",
-        details: error.message,
+        details: error.message
       }),
       { status: 500 }
     );
