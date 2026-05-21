@@ -4,8 +4,17 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const symbol = searchParams.get("symbol") || "BTCUSDT";
-    const limit = searchParams.get("limit") || 1000;
+    // FIX DEFINITIVO DE SYMBOL
+    let symbol = searchParams.get("symbol");
+    if (!symbol || symbol === "null" || symbol === "undefined" || symbol.trim() === "") {
+      symbol = "BTCUSDT";
+    }
+
+    // FIX DE LIMIT
+    let limit = searchParams.get("limit");
+    if (!limit || limit === "null" || limit === "undefined" || limit.trim() === "") {
+      limit = 1000;
+    }
 
     // URL del Worker Cloudflare (proxy)
     const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
