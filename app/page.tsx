@@ -2,107 +2,100 @@
 
 import { useEffect, useState } from "react";
 import PriceCard from "./components/PriceCard";
-import BigChart from "./components/BigChart";
 import MarketTable from "./components/MarketTable";
+import BigChart from "./components/BigChart";
 import OrderFlowPanel from "./components/OrderFlowPanel";
 import LiquidityMapPanel from "./components/LiquidityMapPanel";
-import ScreenerPanel from "./components/ScreenerPanel";
 import SentimentPanel from "./components/SentimentPanel";
 
 export default function Home() {
   const [market, setMarket] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [candles, setCandles] = useState<any[]>([]);
+  const [orderflow, setOrderflow] = useState<any>(null);
+  const [liquidity, setLiquidity] = useState<any>(null);
+  const [sentiment, setSentiment] = useState<any>(null);
 
-  const safeNumber = (v: any) =>
-    typeof v === "number" ? v.toLocaleString() : "—";
-
-  const safePercent = (v: any) =>
-    typeof v === "number" ? v.toFixed(2) + "%" : "—";
-
+  // Fetch Market Data
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch("/api/crypto/market");
-        const data = await res.json();
-
-        if (Array.isArray(data)) {
-          setMarket(data);
-        } else {
-          setMarket([]);
-        }
-      } catch (err) {
-        console.error("Error cargando mercado:", err);
-        setMarket([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
+    fetch("/api/crypto/market")
+      .then((res) => res.json())
+      .then((data) => setMarket(data));
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{ padding: "40px", color: "white" }}>
-        Cargando datos del mercado…
-      </div>
-    );
-  }
+  // Fetch Candles
+  useEffect(() => {
+    fetch("/api/crypto/candles?symbol=BTCUSDT&interval=1h&limit=200")
+      .then((res) => res.json())
+      .then((data) => setCandles(data));
+  }, []);
+
+  // Fetch Orderflow
+  useEffect(() => {
+    fetch("/api/crypto/orderflow?symbol=BTCUSDT")
+      .then((res) => res.json())
+      .then((data) => setOrderflow(data));
+  }, []);
+
+  // Fetch Liquidity
+  useEffect(() => {
+    fetch("/api/crypto/liquidity?symbol=BTCUSDT")
+      .then((res) => res.json())
+      .then((data) => setLiquidity(data));
+  }, []);
+
+  // Fetch Sentiment
+  useEffect(() => {
+    fetch("/api/crypto/sentiment")
+      .then((res) => res.json())
+      .then((data) => setSentiment(data));
+  }, []);
 
   return (
-    <div style={{ padding: "20px", color: "white" }}>
-      <h1>CAPIT24 Terminal</h1>
+    <div style={{ padding: "40px" }}>
+      <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>
+        Capit24 Terminal
+      </h1>
 
-      {/* CARDS PRINCIPALES */}
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          flexWrap: "wrap",
-          marginTop: "20px",
-        }}
-      >
-        {market.slice(0, 4).map((coin: any) => (
+      {/* PRICE CARD */}
+      <div style={{ marginTop: "20px" }}>
+        {market.length > 0 && (
           <PriceCard
-            key={coin.id}
-            data={coin}
+            data={market[0]}
             toggle={() => {}}
-            watchlist={false}
+            watchlist={[]}
           />
-        ))}
+        )}
       </div>
 
-      {/* CHART PRINCIPAL */}
+      {/* MARKET TABLE */}
       <div style={{ marginTop: "40px" }}>
-        <BigChart data={market} />
+        <MarketTable
+          data={market}
+          onSelect={() => {}}
+          toggle={() => {}}
+          watchlist={[]}
+        />
       </div>
 
-      {/* TABLA DE MERCADO */}
+      {/* BIG CHART */}
       <div style={{ marginTop: "40px" }}>
-        <MarketTable data={market} />
+        <BigChart data={candles} />
       </div>
 
       {/* ORDER FLOW */}
       <div style={{ marginTop: "40px" }}>
-        <OrderFlowPanel data={market} />
+        {orderflow && <OrderFlowPanel candles={orderflow} />}
       </div>
 
       {/* LIQUIDITY MAP */}
       <div style={{ marginTop: "40px" }}>
-        <LiquidityMapPanel data={market} />
+        {liquidity && <LiquidityMapPanel candles={liquidity} />}
       </div>
 
-      {/* SCREENER */}
+      {/* SENTIMENT PANEL */}
       <div style={{ marginTop: "40px" }}>
-        <ScreenerPanel data={market} />
-      </div>
-
-      {/* SENTIMENT */}
-      <div style={{ marginTop: "40px" }}>
-        <SentimentPanel data={market} />
+        {sentiment && <SentimentPanel sentiment={sentiment} />}
       </div>
     </div>
   );
 }
-
-
