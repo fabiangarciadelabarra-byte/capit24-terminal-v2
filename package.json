@@ -12,7 +12,7 @@
     "axios": "^1.6.7",
     "chart.js": "^4.4.0",
     "geist": "^1.7.0",
-    "lightweight-charts": "^4.1.0",
+    "lightweight-charts": "^4.2.3",
     "next": "14.2.3",
     "react": "18.2.0",
     "react-chartjs-2": "^5.2.0",
