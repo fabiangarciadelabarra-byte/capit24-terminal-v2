@@ -8,15 +8,15 @@ export async function GET(request) {
     const interval = searchParams.get("interval") || "1h";
     const limit = searchParams.get("limit") || "200";
 
-    // Mirror oficial de Binance en Google Cloud
-    const url = `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    // Usamos tu Worker en Cloudflare (EE.UU.)
+    const url = `https://binance-proxy.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener velas desde Binance (GCP)",
+          error: "Error al obtener velas desde Binance (Proxy)",
           status: response.status
         }),
         { status: 500 }
