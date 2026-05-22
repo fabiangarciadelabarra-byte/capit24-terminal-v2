@@ -4,26 +4,18 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // FIX DEFINITIVO DEL PROBLEMA DEL SYMBOL
-    let symbol = searchParams.get("symbol");
-    if (!symbol || symbol === "null" || symbol === "undefined" || symbol.trim() === "") {
-      symbol = "BTCUSDT";
-    }
+    let symbol = searchParams.get("symbol") || "BTCUSDT";
+    let interval = searchParams.get("interval") || "1m";
+    let limit = searchParams.get("limit") || "200";
 
-    const limit = searchParams.get("limit") || 100;
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
-    // URL del Worker Cloudflare (proxy)
-    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/depth&symbol=${symbol}&limit=${limit}`;
-
-    const response = await fetch(workerUrl, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" }
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener liquidez desde el proxy",
+          error: "Error al obtener velas desde Binance",
           status: response.status
         }),
         { status: 500 }
@@ -32,18 +24,16 @@ export async function GET(request) {
 
     const data = await response.json();
 
-    // Validación mínima
-    if (!data.bids || !data.asks) {
-      return new Response(
-        JSON.stringify({
-          error: "Binance no devolvió bids/asks válidos",
-          data
-        }),
-        { status: 500 }
-      );
-    }
+    const candles = data.map(c => ({
+      time: Math.floor(c[0] / 1000),
+      open: parseFloat(c[1]),
+      high: parseFloat(c[2]),
+      low: parseFloat(c[3]),
+      close: parseFloat(c[4]),
+      volume: parseFloat(c[5])
+    }));
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(candles), {
       status: 200,
       headers: { "Content-Type": "application/json" }
     });
@@ -51,7 +41,7 @@ export async function GET(request) {
   } catch (error) {
     return new Response(
       JSON.stringify({
-        error: "Error interno en /api/crypto/liquidity",
+        error: "Error interno en /api/crypto/candles",
         details: error.message
       }),
       { status: 500 }
