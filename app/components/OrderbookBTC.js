@@ -7,8 +7,9 @@ export default function OrderbookBTC() {
 
   if (!depth) return <div>Cargando orderbook...</div>;
 
-  const bids = depth.bids?.slice(0, 10) || [];
-  const asks = depth.asks?.slice(0, 10) || [];
+  // Binance envía "b" y "a", NO "bids" y "asks"
+  const bids = depth.b?.slice(0, 10) || [];
+  const asks = depth.a?.slice(0, 10) || [];
 
   return (
     <div style={{ display: "flex", gap: "2rem" }}>
