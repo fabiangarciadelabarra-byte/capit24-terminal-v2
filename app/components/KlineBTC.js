@@ -1,9 +1,14 @@
 "use client";
 
 import { useBinanceWS } from "../hooks/useBinanceWS";
+import { useChartSettings } from "../hooks/useChartSettings";
 
 export default function KlineBTC() {
-  const msg = useBinanceWS("btcusdt@kline_1m");
+  const { symbol, timeframe } = useChartSettings();
+
+  // Stream dinámico según símbolo y timeframe
+  const stream = `${symbol.toLowerCase()}@kline_${timeframe}`;
+  const msg = useBinanceWS(stream);
 
   if (!msg) return <div>Cargando vela...</div>;
 
@@ -11,7 +16,7 @@ export default function KlineBTC() {
 
   return (
     <div>
-      <h3>Vela 1m</h3>
+      <h3>Vela {timeframe}</h3>
       <p>Open: {k.o}</p>
       <p>High: {k.h}</p>
       <p>Low: {k.l}</p>
