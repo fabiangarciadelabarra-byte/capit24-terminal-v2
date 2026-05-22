@@ -25,7 +25,6 @@ export async function GET(request) {
     const raw = await response.text();
     let data = JSON.parse(raw);
 
-    // Validación por si Binance devuelve objeto en vez de array
     if (data && typeof data === "object" && !Array.isArray(data)) {
       data = data.data || data.result || [];
     }
