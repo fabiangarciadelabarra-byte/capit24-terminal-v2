@@ -7,7 +7,6 @@ export async function GET(request) {
     const symbol = searchParams.get("symbol") || "BTCUSDT";
     const limit = searchParams.get("limit") || "1000";
 
-    // Usamos tu Worker en Cloudflare (EE.UU.)
     const url = `https://binance-proxy.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
 
     const response = await fetch(url);
@@ -22,7 +21,9 @@ export async function GET(request) {
       );
     }
 
-    const data = await response.json();
+    // FIX: Binance devuelve texto, no JSON directo
+    const raw = await response.text();
+    const data = JSON.parse(raw);
 
     const trades = data.map(t => ({
       id: t.id,
