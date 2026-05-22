@@ -1,72 +1,31 @@
-const SYMBOL_MAP = {
-  BTCUSDT: "bitcoin",
-  ETHUSDT: "ethereum",
-  SOLUSDT: "solana",
-  XRPUSDT: "ripple",
-  ADAUSDT: "cardano",
-  BNBUSDT: "binancecoin",
-  DOGEUSDT: "dogecoin",
-  AVAXUSDT: "avalanche-2",
-  DOTUSDT: "polkadot",
-  LTCUSDT: "litecoin"
-};
+export const runtime = "nodejs";
 
-function groupCandles(prices, intervalMinutes) {
-  const groups = {};
-
-  prices.forEach(([timestamp, price]) => {
-    const minute = Math.floor(timestamp / 1000 / 60);
-    const bucket = Math.floor(minute / intervalMinutes);
-
-    if (!groups[bucket]) {
-      groups[bucket] = {
-        time: bucket * intervalMinutes * 60,
-        open: price,
-        high: price,
-        low: price,
-        close: price
-      };
-    } else {
-      groups[bucket].high = Math.max(groups[bucket].high, price);
-      groups[bucket].low = Math.min(groups[bucket].low, price);
-      groups[bucket].close = price;
-    }
-  });
-
-  return Object.values(groups).sort((a, b) => a.time - b.time);
-}
+import axios from "axios";
 
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
+  try {
+    const { searchParams } = new URL(req.url);
 
-  let symbol = searchParams.get("symbol") || "BTCUSDT";
-  let days = searchParams.get("days") || "1";
-  let interval = searchParams.get("interval") || "1h";
+    const symbol = searchParams.get("symbol") || "BTCUSDT";
+    const interval = searchParams.get("interval") || "1m";
+    const limit = searchParams.get("limit") || "500";
 
-  const cgSymbol = SYMBOL_MAP[symbol] || "bitcoin";
+    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
-  const intervalMap = {
-    "5m": 5,
-    "15m": 15,
-    "1h": 60,
-    "4h": 240
-  };
+    const { data } = await axios.get(url);
 
-  const intervalMinutes = intervalMap[interval] || 60;
+    const candles = data.map(c => ({
+      time: Math.floor(c[0] / 1000),
+      open: parseFloat(c[1]),
+      high: parseFloat(c[2]),
+      low: parseFloat(c[3]),
+      close: parseFloat(c[4]),
+      volume: parseFloat(c[5]),
+    }));
 
-  const url = `https://api.coingecko.com/api/v3/coins/${cgSymbol}/market_chart?vs_currency=usd&days=${days}`;
-
-  const response = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0" }
-  });
-
-  const data = await response.json();
-
-  if (!data.prices) {
-    return Response.json({ error: "CoinGecko error", data });
+    return Response.json(candles);
+  } catch (error) {
+    console.error("Binance Klines error:", error?.message);
+    return Response.json([], { status: 200 });
   }
-
-  const candles = groupCandles(data.prices, intervalMinutes);
-
-  return Response.json(candles);
 }
