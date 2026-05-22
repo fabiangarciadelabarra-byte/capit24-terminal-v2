@@ -7,14 +7,15 @@ export async function GET(request) {
     const symbol = searchParams.get("symbol") || "BTCUSDT";
     const limit = searchParams.get("limit") || "1000";
 
-    const url = `https://api.binance-proxy.io/api/v3/trades?symbol=${symbol}&limit=${limit}`;
+    // Mirror oficial de Binance en Google Cloud
+    const url = `https://api-gcp.binance.com/api/v3/trades?symbol=${symbol}&limit=${limit}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener orderflow desde proxy",
+          error: "Error al obtener orderflow desde Binance (GCP)",
           status: response.status
         }),
         { status: 500 }
