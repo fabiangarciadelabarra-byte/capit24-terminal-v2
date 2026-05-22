@@ -7,18 +7,14 @@ export async function GET(request) {
     const symbol = searchParams.get("symbol") || "BTCUSDT";
     const limit = searchParams.get("limit") || "1000";
 
-    // Usar tu Worker como proxy
-    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
+    const url = `https://api1.binance.com/api/v3/trades?symbol=${symbol}&limit=${limit}`;
 
-    const response = await fetch(workerUrl, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" }
-    });
+    const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener orderflow desde el proxy",
+          error: "Error al obtener orderflow desde Binance",
           status: response.status
         }),
         { status: 500 }
@@ -26,16 +22,6 @@ export async function GET(request) {
     }
 
     const data = await response.json();
-
-    if (!Array.isArray(data)) {
-      return new Response(
-        JSON.stringify({
-          error: "Binance no devolvió trades válidos",
-          data
-        }),
-        { status: 500 }
-      );
-    }
 
     const trades = data.map(t => ({
       id: t.id,
@@ -61,4 +47,3 @@ export async function GET(request) {
     );
   }
 }
-
