@@ -8,7 +8,6 @@ export async function GET(request) {
     const interval = searchParams.get("interval") || "1h";
     const limit = searchParams.get("limit") || "200";
 
-    // Usamos tu Worker en Cloudflare (EE.UU.)
     const url = `https://binance-proxy.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
     const response = await fetch(url);
@@ -23,7 +22,8 @@ export async function GET(request) {
       );
     }
 
-    const data = await response.json();
+    const raw = await response.text();
+    const data = JSON.parse(raw);
 
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
