@@ -1,18 +1,28 @@
-export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-import axios from "axios";
-
-export async function GET(req) {
+export async function GET(request) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(request.url);
 
     const symbol = searchParams.get("symbol") || "BTCUSDT";
-    const interval = searchParams.get("interval") || "1m";
-    const limit = searchParams.get("limit") || "500";
+    const interval = searchParams.get("interval") || "1h";
+    const limit = searchParams.get("limit") || "200";
 
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    const url = `https://api-gcp.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
-    const { data } = await axios.get(url);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({
+          error: "Error al obtener histórico desde Binance (GCP)",
+          status: response.status
+        }),
+        { status: 500 }
+      );
+    }
+
+    const data = await response.json();
 
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
@@ -20,12 +30,21 @@ export async function GET(req) {
       high: parseFloat(c[2]),
       low: parseFloat(c[3]),
       close: parseFloat(c[4]),
-      volume: parseFloat(c[5]),
+      volume: parseFloat(c[5])
     }));
 
-    return Response.json(candles);
+    return new Response(JSON.stringify(candles), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+
   } catch (error) {
-    console.error("Binance Klines error:", error?.message);
-    return Response.json([], { status: 200 });
+    return new Response(
+      JSON.stringify({
+        error: "Error interno en /api/crypto/history",
+        details: error.message
+      }),
+      { status: 500 }
+    );
   }
 }
