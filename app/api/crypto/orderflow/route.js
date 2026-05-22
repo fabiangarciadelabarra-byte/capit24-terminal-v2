@@ -4,19 +4,10 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // FIX DEFINITIVO DE SYMBOL
-    let symbol = searchParams.get("symbol");
-    if (!symbol || symbol === "null" || symbol === "undefined" || symbol.trim() === "") {
-      symbol = "BTCUSDT";
-    }
+    const symbol = searchParams.get("symbol") || "BTCUSDT";
+    const limit = searchParams.get("limit") || "1000";
 
-    // FIX DE LIMIT
-    let limit = searchParams.get("limit");
-    if (!limit || limit === "null" || limit === "undefined" || limit.trim() === "") {
-      limit = 1000;
-    }
-
-    // URL del Worker Cloudflare (proxy)
+    // Usar tu Worker como proxy
     const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
 
     const response = await fetch(workerUrl, {
@@ -36,7 +27,6 @@ export async function GET(request) {
 
     const data = await response.json();
 
-    // Validación mínima
     if (!Array.isArray(data)) {
       return new Response(
         JSON.stringify({
@@ -47,12 +37,11 @@ export async function GET(request) {
       );
     }
 
-    // Normalización del formato
-    const trades = data.map((t) => ({
+    const trades = data.map(t => ({
       id: t.id,
-      price: t.price,
-      qty: t.qty,
-      quoteQty: t.quoteQty,
+      price: parseFloat(t.price),
+      qty: parseFloat(t.qty),
+      quoteQty: parseFloat(t.quoteQty),
       time: t.time,
       isBuyerMaker: t.isBuyerMaker
     }));
@@ -72,3 +61,4 @@ export async function GET(request) {
     );
   }
 }
+
