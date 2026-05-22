@@ -4,9 +4,9 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    let symbol = searchParams.get("symbol") || "BTCUSDT";
-    let interval = searchParams.get("interval") || "1m";
-    let limit = searchParams.get("limit") || "200";
+    const symbol = searchParams.get("symbol") || "BTCUSDT";
+    const interval = searchParams.get("interval") || "1m";
+    const limit = searchParams.get("limit") || "200";
 
     const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
