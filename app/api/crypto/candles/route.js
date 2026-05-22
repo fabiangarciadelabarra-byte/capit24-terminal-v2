@@ -5,17 +5,21 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
 
     const symbol = searchParams.get("symbol") || "BTCUSDT";
-    const interval = searchParams.get("interval") || "1m";
+    const interval = searchParams.get("interval") || "1h";
     const limit = searchParams.get("limit") || "200";
 
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    // Usar tu Worker como proxy
+    const workerUrl = `https://dawn-sky-9923.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
-    const response = await fetch(url);
+    const response = await fetch(workerUrl, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" }
+    });
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener velas desde Binance",
+          error: "Error al obtener velas desde el proxy",
           status: response.status
         }),
         { status: 500 }
