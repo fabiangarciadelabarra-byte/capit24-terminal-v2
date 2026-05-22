@@ -8,15 +8,15 @@ export async function GET(request) {
     const interval = searchParams.get("interval") || "1h";
     const limit = searchParams.get("limit") || "200";
 
-    // Usar mirror oficial de Binance
-    const url = `https://api1.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    // Proxy global que NO está bloqueado
+    const url = `https://api.binance-proxy.io/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener velas desde Binance",
+          error: "Error al obtener velas desde proxy",
           status: response.status
         }),
         { status: 500 }
