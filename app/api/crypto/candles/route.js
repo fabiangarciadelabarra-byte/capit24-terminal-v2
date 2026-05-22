@@ -23,7 +23,21 @@ export async function GET(request) {
     }
 
     const raw = await response.text();
-    const data = JSON.parse(raw);
+    let data = JSON.parse(raw);
+
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      data = data.data || data.result || [];
+    }
+
+    if (!Array.isArray(data)) {
+      return new Response(
+        JSON.stringify({
+          error: "Formato inesperado desde Binance (Proxy)",
+          details: typeof data
+        }),
+        { status: 500 }
+      );
+    }
 
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
