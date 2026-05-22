@@ -7,23 +7,38 @@ export async function GET(request) {
     const symbol = searchParams.get("symbol") || "BTCUSDT";
     const limit = searchParams.get("limit") || "1000";
 
-    const url = `https://binance-proxy.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/trades&symbol=${symbol}&limit=${limit}`;
+    // Nueva URL correcta para el Worker actualizado
+    const url = `https://binance-proxy.fabiangarciadelabarra.workers.dev/orderflow?symbol=${symbol}&limit=${limit}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener orderflow desde Binance (Proxy)",
+          error: "Error al obtener orderflow desde el proxy",
           status: response.status
         }),
         { status: 500 }
       );
     }
 
-    // FIX: Binance devuelve texto, no JSON directo
     const raw = await response.text();
-    const data = JSON.parse(raw);
+    let data = JSON.parse(raw);
+
+    // Validación por si Binance devuelve objeto en vez de array
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      data = data.data || data.result || [];
+    }
+
+    if (!Array.isArray(data)) {
+      return new Response(
+        JSON.stringify({
+          error: "Formato inesperado desde Binance (Proxy)",
+          details: typeof data
+        }),
+        { status: 500 }
+      );
+    }
 
     const trades = data.map(t => ({
       id: t.id,
