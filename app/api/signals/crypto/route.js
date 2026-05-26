@@ -2,23 +2,30 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol") || "BTCUSDT";
 
-  try {
-    // 1. Obtener velas 5m
-    const klinesRes = await fetch(
-      `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=100`
-    );
-    const klines = await klinesRes.json();
+  const apiKey = process.env.FINNHUB_API_KEY;
 
-    // Validar respuesta
-    if (!Array.isArray(klines)) {
+  if (!apiKey) {
+    return Response.json(
+      { error: "FINNHUB_API_KEY no está configurada en Vercel" },
+      { status: 500 }
+    );
+  }
+
+  try {
+    // 1. Obtener velas 5m desde Finnhub
+    const candlesRes = await fetch(
+      `https://finnhub.io/api/v1/crypto/candle?symbol=BINANCE:${symbol}&resolution=5&token=${apiKey}`
+    );
+    const candles = await candlesRes.json();
+
+    if (candles.s !== "ok") {
       return Response.json(
-        { error: "Binance no devolvió velas válidas", details: klines },
+        { error: "Finnhub no devolvió velas válidas", details: candles },
         { status: 500 }
       );
     }
 
-    // Convertir velas a precios de cierre
-    const closes = klines.map(k => parseFloat(k[4]));
+    const closes = candles.c;
 
     // 2. Calcular RSI
     function calcRSI(values, period = 14) {
@@ -54,15 +61,15 @@ export async function GET(req) {
     if (ema20 > ema50 && ema50 > ema200) emaTrend = "bullish";
     if (ema20 < ema50 && ema50 < ema200) emaTrend = "bearish";
 
-    // 4. Orderflow (aggTrades)
+    // 4. Orderflow desde Finnhub (trades)
     const tradesRes = await fetch(
-      `https://api.binance.com/api/v3/aggTrades?symbol=${symbol}&limit=200`
+      `https://finnhub.io/api/v1/crypto/trades?symbol=BINANCE:${symbol}&limit=200&token=${apiKey}`
     );
-    const trades = await tradesRes.json();
+    const tradesData = await tradesRes.json();
 
-    if (!Array.isArray(trades)) {
+    if (!tradesData.data) {
       return Response.json(
-        { error: "Binance no devolvió trades válidos", details: trades },
+        { error: "Finnhub no devolvió trades válidos", details: tradesData },
         { status: 500 }
       );
     }
@@ -70,10 +77,10 @@ export async function GET(req) {
     let buyVolume = 0;
     let sellVolume = 0;
 
-    trades.forEach(t => {
-      const qty = parseFloat(t.q);
-      if (t.m === false) buyVolume += qty; // comprador agresivo
-      else sellVolume += qty; // vendedor agresivo
+    tradesData.data.forEach(t => {
+      const qty = t.v;
+      if (t.c.includes("B")) buyVolume += qty; // comprador
+      if (t.c.includes("S")) sellVolume += qty; // vendedor
     });
 
     const delta = buyVolume - sellVolume;
@@ -94,10 +101,8 @@ export async function GET(req) {
       confidence = 0.8;
     }
 
-    // 6. Precio actual
     const lastClose = closes[closes.length - 1];
 
-    // 7. Respuesta final
     return Response.json({
       symbol,
       signal,
