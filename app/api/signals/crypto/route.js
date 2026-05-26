@@ -9,6 +9,14 @@ export async function GET(req) {
     );
     const klines = await klinesRes.json();
 
+    // Validar respuesta
+    if (!Array.isArray(klines)) {
+      return Response.json(
+        { error: "Binance no devolvió velas válidas", details: klines },
+        { status: 500 }
+      );
+    }
+
     // Convertir velas a precios de cierre
     const closes = klines.map(k => parseFloat(k[4]));
 
@@ -51,6 +59,13 @@ export async function GET(req) {
       `https://api.binance.com/api/v3/aggTrades?symbol=${symbol}&limit=200`
     );
     const trades = await tradesRes.json();
+
+    if (!Array.isArray(trades)) {
+      return Response.json(
+        { error: "Binance no devolvió trades válidos", details: trades },
+        { status: 500 }
+      );
+    }
 
     let buyVolume = 0;
     let sellVolume = 0;
