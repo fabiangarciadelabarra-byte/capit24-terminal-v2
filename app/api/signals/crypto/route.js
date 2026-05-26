@@ -1,33 +1,26 @@
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
-  const symbol = searchParams.get("symbol") || "BTCUSDT";
-
-  const apiKey = process.env.FINNHUB_API_KEY;
-
-  if (!apiKey) {
-    return Response.json(
-      { error: "FINNHUB_API_KEY no está configurada en Vercel" },
-      { status: 500 }
-    );
-  }
+  const symbol = searchParams.get("symbol") || "bitcoin"; // CoinGecko usa nombres, no tickers
 
   try {
-    // 1. Obtener velas 5m desde Finnhub
-    const candlesRes = await fetch(
-      `https://finnhub.io/api/v1/crypto/candle?symbol=BINANCE:${symbol}&resolution=5&token=${apiKey}`
+    // 1. Obtener velas OHLC de CoinGecko (5m = 1 day con resolución alta)
+    const ohlcRes = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${symbol}/ohlc?vs_currency=usd&days=1`
     );
-    const candles = await candlesRes.json();
+    const ohlc = await ohlcRes.json();
 
-    if (candles.s !== "ok") {
+    if (!Array.isArray(ohlc)) {
       return Response.json(
-        { error: "Finnhub no devolvió velas válidas", details: candles },
+        { error: "CoinGecko no devolvió velas válidas", details: ohlc },
         { status: 500 }
       );
     }
 
-    const closes = candles.c;
+    // CoinGecko devuelve: [timestamp, open, high, low, close]
+    const closes = ohlc.map(c => c[4]);
+    const volumes = ohlc.map(c => c[5] || 0);
 
-    // 2. Calcular RSI
+    // 2. RSI
     function calcRSI(values, period = 14) {
       let gains = 0, losses = 0;
       for (let i = 1; i <= period; i++) {
@@ -43,7 +36,7 @@ export async function GET(req) {
 
     const rsi = calcRSI(closes);
 
-    // 3. Calcular EMAs
+    // 3. EMAs
     function calcEMA(values, period) {
       const k = 2 / (period + 1);
       let ema = values[0];
@@ -61,42 +54,21 @@ export async function GET(req) {
     if (ema20 > ema50 && ema50 > ema200) emaTrend = "bullish";
     if (ema20 < ema50 && ema50 < ema200) emaTrend = "bearish";
 
-    // 4. Orderflow desde Finnhub (trades)
-    const tradesRes = await fetch(
-      `https://finnhub.io/api/v1/crypto/trades?symbol=BINANCE:${symbol}&limit=200&token=${apiKey}`
-    );
-    const tradesData = await tradesRes.json();
-
-    if (!tradesData.data) {
-      return Response.json(
-        { error: "Finnhub no devolvió trades válidos", details: tradesData },
-        { status: 500 }
-      );
-    }
-
-    let buyVolume = 0;
-    let sellVolume = 0;
-
-    tradesData.data.forEach(t => {
-      const qty = t.v;
-      if (t.c.includes("B")) buyVolume += qty; // comprador
-      if (t.c.includes("S")) sellVolume += qty; // vendedor
-    });
-
-    const delta = buyVolume - sellVolume;
-    const buyersPct = (buyVolume / (buyVolume + sellVolume)) * 100;
-    const sellersPct = 100 - buyersPct;
+    // 4. Orderflow básico (volumen de velas)
+    const lastVolume = volumes[volumes.length - 1];
+    const avgVolume = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+    const volumeTrend = lastVolume > avgVolume ? "buying" : "selling";
 
     // 5. Señal final
     let signal = "NEUTRAL";
     let confidence = 0.5;
 
-    if (rsi < 30 && emaTrend === "bullish" && delta > 0) {
+    if (rsi < 30 && emaTrend === "bullish" && volumeTrend === "buying") {
       signal = "BUY";
       confidence = 0.8;
     }
 
-    if (rsi > 70 && emaTrend === "bearish" && delta < 0) {
+    if (rsi > 70 && emaTrend === "bearish" && volumeTrend === "selling") {
       signal = "SELL";
       confidence = 0.8;
     }
@@ -117,10 +89,10 @@ export async function GET(req) {
         ema50,
         ema200
       },
-      orderflow: {
-        delta,
-        buyers: buyersPct,
-        sellers: sellersPct
+      volume: {
+        lastVolume,
+        avgVolume,
+        volumeTrend
       },
       timestamp: Date.now()
     });
