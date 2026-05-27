@@ -1,103 +1,193 @@
+import { NextResponse } from "next/server";
+
+// ---------------------------------------------
+// Helpers para indicadores
+// ---------------------------------------------
+function buildOhlcFromPrices(prices) {
+  return prices.map(([ts, price]) => ({
+    time: Math.floor(ts / 1000),
+    open: price,
+    high: price,
+    low: price,
+    close: price,
+  }));
+}
+
+function ema(values, period) {
+  if (values.length < period) return [];
+  const k = 2 / (period + 1);
+  const result = [];
+  let prev = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  result.push(prev);
+
+  for (let i = period; i < values.length; i++) {
+    const current = values[i] * k + prev * (1 - k);
+    result.push(current);
+    prev = current;
+  }
+  return result;
+}
+
+function rsi(values, period = 14) {
+  if (values.length <= period) return [];
+  const gains = [];
+  const losses = [];
+
+  for (let i = 1; i < values.length; i++) {
+    const diff = values[i] - values[i - 1];
+    gains.push(diff > 0 ? diff : 0);
+    losses.push(diff < 0 ? -diff : 0);
+  }
+
+  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+  const result = [];
+  let rs = avgLoss === 0 ? 0 : avgGain / avgLoss;
+  result.push(100 - 100 / (1 + rs));
+
+  for (let i = period; i < gains.length; i++) {
+    avgGain = (avgGain * (period - 1) + gains[i]) / period;
+    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+    rs = avgLoss === 0 ? 0 : avgGain / avgLoss;
+    result.push(100 - 100 / (1 + rs));
+  }
+
+  return result;
+}
+
+// ---------------------------------------------
+// Mapeo de símbolos → IDs de CoinGecko
+// ---------------------------------------------
+const COINGECKO_IDS = {
+  btc: "bitcoin",
+  eth: "ethereum",
+  ada: "cardano",
+  atom: "cosmos",
+  sol: "solana",
+  bnb: "binancecoin",
+  xrp: "ripple",
+  dot: "polkadot",
+  matic: "matic-network",
+  avax: "avalanche-2",
+  algo: "algorand",
+  apt: "aptos",
+  arb: "arbitrum",
+  axs: "axie-infinity",
+  bat: "basic-attention-token",
+  bch: "bitcoin-cash",
+  // agrega más si quieres
+};
+
+// ---------------------------------------------
+// ENDPOINT PRINCIPAL
+// ---------------------------------------------
 export async function GET(req) {
-  const { searchParams } = new URL(req.url);
-  const symbol = searchParams.get("symbol") || "bitcoin"; // CoinGecko usa nombres, no tickers
-
   try {
-    // 1. Obtener velas OHLC de CoinGecko (5m = 1 day con resolución alta)
-    const ohlcRes = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${symbol}/ohlc?vs_currency=usd&days=1`
-    );
-    const ohlc = await ohlcRes.json();
+    const { searchParams } = new URL(req.url);
+    const symbol = searchParams.get("symbol")?.toLowerCase() || "atom";
 
-    if (!Array.isArray(ohlc)) {
-      return Response.json(
-        { error: "CoinGecko no devolvió velas válidas", details: ohlc },
+    const id = COINGECKO_IDS[symbol];
+    if (!id) {
+      return NextResponse.json(
+        { error: `Symbol '${symbol}' no está mapeado en CoinGecko.` },
+        { status: 400 }
+      );
+    }
+
+    // ---------------------------------------------
+    // 1) Datos actuales del activo
+    // ---------------------------------------------
+    const currentRes = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true`
+    );
+
+    if (!currentRes.ok) {
+      return NextResponse.json(
+        { error: "Error obteniendo datos actuales" },
         { status: 500 }
       );
     }
 
-    // CoinGecko devuelve: [timestamp, open, high, low, close]
-    const closes = ohlc.map(c => c[4]);
-    const volumes = ohlc.map(c => c[5] || 0);
+    const current = await currentRes.json();
 
-    // 2. RSI
-    function calcRSI(values, period = 14) {
-      let gains = 0, losses = 0;
-      for (let i = 1; i <= period; i++) {
-        const diff = values[values.length - i] - values[values.length - i - 1];
-        if (diff >= 0) gains += diff;
-        else losses -= diff;
-      }
-      const avgGain = gains / period;
-      const avgLoss = losses / period;
-      const rs = avgGain / avgLoss;
-      return 100 - 100 / (1 + rs);
-    }
+    const price = current.market_data.current_price.usd;
+    const ema20 = current.market_data.ema_20 || null;
+    const ema50 = current.market_data.ema_50 || null;
+    const ema200 = current.market_data.ema_200 || null;
+    const rsiValue = current.market_data.rsi_14 || null;
 
-    const rsi = calcRSI(closes);
+    // ---------------------------------------------
+    // 2) Datos históricos (7 días)
+    // ---------------------------------------------
+    const chartRes = await fetch(
+      `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`
+    );
 
-    // 3. EMAs
-    function calcEMA(values, period) {
-      const k = 2 / (period + 1);
-      let ema = values[0];
-      for (let i = 1; i < values.length; i++) {
-        ema = values[i] * k + ema * (1 - k);
-      }
-      return ema;
-    }
+    const chartData = chartRes.ok ? await chartRes.json() : { prices: [] };
 
-    const ema20 = calcEMA(closes, 20);
-    const ema50 = calcEMA(closes, 50);
-    const ema200 = calcEMA(closes, 200);
+    const ohlc = buildOhlcFromPrices(chartData.prices || []);
+    const closes = (chartData.prices || []).map(([, p]) => p);
+    const baseTimes = (chartData.prices || []).map(([ts]) =>
+      Math.floor(ts / 1000)
+    );
 
-    let emaTrend = "neutral";
-    if (ema20 > ema50 && ema50 > ema200) emaTrend = "bullish";
-    if (ema20 < ema50 && ema50 < ema200) emaTrend = "bearish";
+    // ---------------------------------------------
+    // 3) Indicadores históricos
+    // ---------------------------------------------
+    const ema20Values = ema(closes, 20);
+    const ema50Values = ema(closes, 50);
+    const ema200Values = ema(closes, 200);
+    const rsiValues = rsi(closes, 14);
 
-    // 4. Orderflow básico (volumen de velas)
-    const lastVolume = volumes[volumes.length - 1];
-    const avgVolume = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-    const volumeTrend = lastVolume > avgVolume ? "buying" : "selling";
+    const ema20Series = ema20Values.map((v, i) => ({
+      time: baseTimes[i + (closes.length - ema20Values.length)],
+      value: v,
+    }));
 
-    // 5. Señal final
-    let signal = "NEUTRAL";
-    let confidence = 0.5;
+    const ema50Series = ema50Values.map((v, i) => ({
+      time: baseTimes[i + (closes.length - ema50Values.length)],
+      value: v,
+    }));
 
-    if (rsi < 30 && emaTrend === "bullish" && volumeTrend === "buying") {
-      signal = "BUY";
-      confidence = 0.8;
-    }
+    const ema200Series = ema200Values.map((v, i) => ({
+      time: baseTimes[i + (closes.length - ema200Values.length)],
+      value: v,
+    }));
 
-    if (rsi > 70 && emaTrend === "bearish" && volumeTrend === "selling") {
-      signal = "SELL";
-      confidence = 0.8;
-    }
+    const rsiSeries = rsiValues.map((v, i) => ({
+      time: baseTimes[i + (closes.length - rsiValues.length)],
+      value: v,
+    }));
 
-    const lastClose = closes[closes.length - 1];
-
-    return Response.json({
+    // ---------------------------------------------
+    // 4) Respuesta final
+    // ---------------------------------------------
+    return NextResponse.json({
       symbol,
-      signal,
-      confidence,
-      entry: lastClose,
-      tp: lastClose * 1.05,
-      sl: lastClose * 0.97,
-      trend: emaTrend,
+      price,
       indicators: {
-        rsi,
+        rsi: rsiValue,
         ema20,
         ema50,
-        ema200
+        ema200,
       },
       volume: {
-        lastVolume,
-        avgVolume,
-        volumeTrend
+        lastVolume: current.market_data.total_volume.usd || 0,
       },
-      timestamp: Date.now()
+      chart: {
+        ohlc,
+        rsi: rsiSeries,
+        ema20: ema20Series,
+        ema50: ema50Series,
+        ema200: ema200Series,
+      },
     });
-
-  } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Error interno en el servidor" },
+      { status: 500 }
+    );
   }
 }
