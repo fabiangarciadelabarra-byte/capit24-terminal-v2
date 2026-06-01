@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 
 // ---------------------------------------------
-// Helpers para indicadores
+// CACHE POR ACTIVO (independiente)
 // ---------------------------------------------
-function buildOhlcFromPrices(prices) {
+const CACHE = {};
+const CACHE_TTL = 30000; // 30 segundos
+
+// ---------------------------------------------
+// Helpers optimizados
+// ---------------------------------------------
+function buildOhlc(prices) {
   return prices.map(([ts, price]) => ({
     time: Math.floor(ts / 1000),
     open: price,
@@ -16,40 +22,44 @@ function buildOhlcFromPrices(prices) {
 function ema(values, period) {
   if (values.length < period) return [];
   const k = 2 / (period + 1);
-  const result = [];
+  const result = new Array(values.length - period + 1);
+
   let prev = values.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  result.push(prev);
+  result[0] = prev;
 
   for (let i = period; i < values.length; i++) {
-    const current = values[i] * k + prev * (1 - k);
-    result.push(current);
-    prev = current;
+    prev = values[i] * k + prev * (1 - k);
+    result[i - period + 1] = prev;
   }
+
   return result;
 }
 
 function rsi(values, period = 14) {
   if (values.length <= period) return [];
-  const gains = [];
-  const losses = [];
 
-  for (let i = 1; i < values.length; i++) {
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i <= period; i++) {
     const diff = values[i] - values[i - 1];
-    gains.push(diff > 0 ? diff : 0);
-    losses.push(diff < 0 ? -diff : 0);
+    if (diff > 0) gains += diff;
+    else losses -= diff;
   }
 
-  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
-  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  gains /= period;
+  losses /= period;
 
   const result = [];
-  let rs = avgLoss === 0 ? 0 : avgGain / avgLoss;
+  let rs = losses === 0 ? 0 : gains / losses;
   result.push(100 - 100 / (1 + rs));
 
-  for (let i = period; i < gains.length; i++) {
-    avgGain = (avgGain * (period - 1) + gains[i]) / period;
-    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
-    rs = avgLoss === 0 ? 0 : avgGain / avgLoss;
+  for (let i = period + 1; i < values.length; i++) {
+    const diff = values[i] - values[i - 1];
+    gains = (gains * (period - 1) + (diff > 0 ? diff : 0)) / period;
+    losses = (losses * (period - 1) + (diff < 0 ? -diff : 0)) / period;
+
+    rs = losses === 0 ? 0 : gains / losses;
     result.push(100 - 100 / (1 + rs));
   }
 
@@ -57,44 +67,36 @@ function rsi(values, period = 14) {
 }
 
 // ---------------------------------------------
-// Mapeo COMPLETO de símbolos → IDs CoinGecko
+// Mapeo completo CoinGecko
 // ---------------------------------------------
 const COINGECKO_IDS = {
   btc: "bitcoin",
   eth: "ethereum",
-  usdt: "tether",
-  bnb: "binancecoin",
-  sol: "solana",
-  xrp: "ripple",
-  usdc: "usd-coin",
   ada: "cardano",
-  avax: "avalanche-2",
-  doge: "dogecoin",
-  trx: "tron",
-  ton: "the-open-network",
+  atom: "cosmos",
+  sol: "solana",
+  bnb: "binancecoin",
+  xrp: "ripple",
   dot: "polkadot",
   matic: "matic-network",
-  link: "chainlink",
-  ltc: "litecoin",
-  bch: "bitcoin-cash",
-  xlm: "stellar",
-  atom: "cosmos",
-  fil: "filecoin",
+  avax: "avalanche-2",
+  algo: "algorand",
   apt: "aptos",
   arb: "arbitrum",
-  op: "optimism",
-  inj: "injective-protocol",
+  axs: "axie-infinity",
+  bat: "basic-attention-token",
+  bch: "bitcoin-cash",
+  fil: "filecoin",
   near: "near",
   hbar: "hedera-hashgraph",
-  sui: "sui",
-  aave: "aave",
-  mkr: "maker",
+  xlm: "stellar",
+  trx: "tron",
+  doge: "dogecoin",
   rune: "thorchain",
-  algo: "algorand",
+  ftm: "fantom",
+  ltc: "litecoin",
   egld: "elrond-erd-2",
   vet: "vechain",
-  ftm: "fantom",
-  grt: "the-graph",
   mana: "decentraland",
   sand: "the-sandbox",
   imx: "immutable-x",
@@ -117,7 +119,6 @@ const COINGECKO_IDS = {
   gmx: "gmx",
   lrc: "loopring",
   enj: "enjincoin",
-  bat: "basic-attention-token",
   zec: "zcash",
   dash: "dash",
   kava: "kava",
@@ -141,7 +142,7 @@ const COINGECKO_IDS = {
 };
 
 // ---------------------------------------------
-// ENDPOINT PRINCIPAL
+// ENDPOINT PRINCIPAL OPTIMIZADO
 // ---------------------------------------------
 export async function GET(req) {
   try {
@@ -156,91 +157,84 @@ export async function GET(req) {
       );
     }
 
-    // 1) Datos actuales
+    const now = Date.now();
+
+    // 1) Si el caché está fresco → devolverlo
+    if (CACHE[symbol] && now - CACHE[symbol].timestamp < CACHE_TTL) {
+      return NextResponse.json(CACHE[symbol].data);
+    }
+
+    // 2) Fetch datos actuales
     const currentRes = await fetch(
       `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true`
     );
 
     if (!currentRes.ok) {
-      return NextResponse.json(
-        { error: "Error obteniendo datos actuales" },
-        { status: 500 }
-      );
+      if (CACHE[symbol]) return NextResponse.json(CACHE[symbol].data);
+      return NextResponse.json({ error: "Error obteniendo datos actuales" }, { status: 500 });
     }
 
     const current = await currentRes.json();
-
     const price = current.market_data.current_price.usd;
-    const ema20 = current.market_data.ema_20 || null;
-    const ema50 = current.market_data.ema_50 || null;
-    const ema200 = current.market_data.ema_200 || null;
-    const rsiValue = current.market_data.rsi_14 || null;
 
-    // 2) Datos históricos
+    // 3) Fetch histórico
     const chartRes = await fetch(
       `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`
     );
 
     const chartData = chartRes.ok ? await chartRes.json() : { prices: [] };
 
-    const ohlc = buildOhlcFromPrices(chartData.prices || []);
-    const closes = (chartData.prices || []).map(([, p]) => p);
-    const baseTimes = (chartData.prices || []).map(([ts]) =>
-      Math.floor(ts / 1000)
-    );
+    const closes = chartData.prices.map(([, p]) => p);
+    const times = chartData.prices.map(([ts]) => Math.floor(ts / 1000));
 
-    // 3) Indicadores históricos
-    const ema20Values = ema(closes, 20);
-    const ema50Values = ema(closes, 50);
-    const ema200Values = ema(closes, 200);
-    const rsiValues = rsi(closes, 14);
-
-    const ema20Series = ema20Values.map((v, i) => ({
-      time: baseTimes[i + (closes.length - ema20Values.length)],
-      value: v,
+    const ema20Series = ema(closes, 20).map((v, i) => ({
+      time: times[i + (closes.length - ema20Series?.length)],
+      value: v
     }));
 
-    const ema50Series = ema50Values.map((v, i) => ({
-      time: baseTimes[i + (closes.length - ema50Values.length)],
-      value: v,
+    const ema50Series = ema(closes, 50).map((v, i) => ({
+      time: times[i + (closes.length - ema50Series?.length)],
+      value: v
     }));
 
-    const ema200Series = ema200Values.map((v, i) => ({
-      time: baseTimes[i + (closes.length - ema200Values.length)],
-      value: v,
+    const ema200Series = ema(closes, 200).map((v, i) => ({
+      time: times[i + (closes.length - ema200Series?.length)],
+      value: v
     }));
 
-    const rsiSeries = rsiValues.map((v, i) => ({
-      time: baseTimes[i + (closes.length - rsiValues.length)],
-      value: v,
+    const rsiSeries = rsi(closes, 14).map((v, i) => ({
+      time: times[i + (closes.length - rsiSeries?.length)],
+      value: v
     }));
 
-    // 4) Respuesta final
-    return NextResponse.json({
+    const response = {
       symbol,
       price,
       indicators: {
-        rsi: rsiValue,
-        ema20,
-        ema50,
-        ema200,
-      },
-      volume: {
-        lastVolume: current.market_data.total_volume.usd || 0,
+        ema20: current.market_data.ema_20 || null,
+        ema50: current.market_data.ema_50 || null,
+        ema200: current.market_data.ema_200 || null,
+        rsi: current.market_data.rsi_14 || null
       },
       chart: {
-        ohlc,
-        rsi: rsiSeries,
+        ohlc: buildOhlc(chartData.prices),
         ema20: ema20Series,
         ema50: ema50Series,
         ema200: ema200Series,
-      },
-    });
+        rsi: rsiSeries
+      }
+    };
+
+    // 4) Guardar en caché
+    CACHE[symbol] = {
+      timestamp: now,
+      data: response
+    };
+
+    return NextResponse.json(response);
+
   } catch (err) {
     console.error(err);
-    return NextResponse.json(
-      { error: "Error interno en el servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
