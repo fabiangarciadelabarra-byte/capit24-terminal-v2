@@ -57,26 +57,87 @@ function rsi(values, period = 14) {
 }
 
 // ---------------------------------------------
-// Mapeo de símbolos → IDs de CoinGecko
+// Mapeo COMPLETO de símbolos → IDs CoinGecko
 // ---------------------------------------------
 const COINGECKO_IDS = {
   btc: "bitcoin",
   eth: "ethereum",
-  ada: "cardano",
-  atom: "cosmos",
-  sol: "solana",
+  usdt: "tether",
   bnb: "binancecoin",
+  sol: "solana",
   xrp: "ripple",
+  usdc: "usd-coin",
+  ada: "cardano",
+  avax: "avalanche-2",
+  doge: "dogecoin",
+  trx: "tron",
+  ton: "the-open-network",
   dot: "polkadot",
   matic: "matic-network",
-  avax: "avalanche-2",
-  algo: "algorand",
+  link: "chainlink",
+  ltc: "litecoin",
+  bch: "bitcoin-cash",
+  xlm: "stellar",
+  atom: "cosmos",
+  fil: "filecoin",
   apt: "aptos",
   arb: "arbitrum",
+  op: "optimism",
+  inj: "injective-protocol",
+  near: "near",
+  hbar: "hedera-hashgraph",
+  sui: "sui",
+  aave: "aave",
+  mkr: "maker",
+  rune: "thorchain",
+  algo: "algorand",
+  egld: "elrond-erd-2",
+  vet: "vechain",
+  ftm: "fantom",
+  grt: "the-graph",
+  mana: "decentraland",
+  sand: "the-sandbox",
+  imx: "immutable-x",
+  ldo: "lido-dao",
+  stx: "blockstack",
+  kas: "kaspa",
+  bonk: "bonk",
+  jup: "jupiter-exchange-solana",
+  pyth: "pyth-network",
+  xmr: "monero",
+  qnt: "quant-network",
+  cro: "crypto-com-chain",
+  flow: "flow",
+  chz: "chiliz",
   axs: "axie-infinity",
+  theta: "theta-token",
+  snx: "synthetix-network-token",
+  crv: "curve-dao-token",
+  dydx: "dydx",
+  gmx: "gmx",
+  lrc: "loopring",
+  enj: "enjincoin",
   bat: "basic-attention-token",
-  bch: "bitcoin-cash",
-  // agrega más si quieres
+  zec: "zcash",
+  dash: "dash",
+  kava: "kava",
+  celo: "celo",
+  mina: "mina-protocol",
+  osmo: "osmosis",
+  rose: "oasis-network",
+  one: "harmony",
+  xtz: "tezos",
+  klay: "klay-token",
+  waves: "waves",
+  hot: "holotoken",
+  zil: "zilliqa",
+  gala: "gala",
+  pepe: "pepe",
+  floki: "floki",
+  sei: "sei-network",
+  woo: "woo-network",
+  jasmy: "jasmycoin",
+  ondo: "ondo-finance"
 };
 
 // ---------------------------------------------
@@ -85,7 +146,7 @@ const COINGECKO_IDS = {
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const symbol = searchParams.get("symbol")?.toLowerCase() || "atom";
+    const symbol = searchParams.get("symbol")?.toLowerCase() || "btc";
 
     const id = COINGECKO_IDS[symbol];
     if (!id) {
@@ -95,9 +156,7 @@ export async function GET(req) {
       );
     }
 
-    // ---------------------------------------------
-    // 1) Datos actuales del activo
-    // ---------------------------------------------
+    // 1) Datos actuales
     const currentRes = await fetch(
       `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true`
     );
@@ -117,9 +176,7 @@ export async function GET(req) {
     const ema200 = current.market_data.ema_200 || null;
     const rsiValue = current.market_data.rsi_14 || null;
 
-    // ---------------------------------------------
-    // 2) Datos históricos (7 días)
-    // ---------------------------------------------
+    // 2) Datos históricos
     const chartRes = await fetch(
       `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`
     );
@@ -132,9 +189,7 @@ export async function GET(req) {
       Math.floor(ts / 1000)
     );
 
-    // ---------------------------------------------
     // 3) Indicadores históricos
-    // ---------------------------------------------
     const ema20Values = ema(closes, 20);
     const ema50Values = ema(closes, 50);
     const ema200Values = ema(closes, 200);
@@ -160,9 +215,7 @@ export async function GET(req) {
       value: v,
     }));
 
-    // ---------------------------------------------
     // 4) Respuesta final
-    // ---------------------------------------------
     return NextResponse.json({
       symbol,
       price,
