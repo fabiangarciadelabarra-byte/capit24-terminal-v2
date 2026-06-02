@@ -67,7 +67,28 @@ function rsi(values, period = 14) {
 }
 
 // ---------------------------------------------
-// Mapeo completo CoinGecko
+// ALGORITMO TIPO BINANCE (SEÑALES)
+// ---------------------------------------------
+function generateSignal({ ema20, ema50, ema200, rsi }) {
+  let trend = "SIDEWAYS";
+
+  if (ema20 > ema50 && ema50 > ema200) trend = "UPTREND";
+  if (ema20 < ema50 && ema50 < ema200) trend = "DOWNTREND";
+
+  // Señales fuertes
+  if (ema20 > ema50 && rsi < 30) return { signal: "BUY", confidence: 80, trend };
+  if (ema20 < ema50 && rsi > 70) return { signal: "SELL", confidence: 80, trend };
+
+  // Señales moderadas
+  if (ema20 > ema50) return { signal: "BUY", confidence: 60, trend };
+  if (ema20 < ema50) return { signal: "SELL", confidence: 60, trend };
+
+  // Mercado lateral
+  return { signal: "HOLD", confidence: 0, trend };
+}
+
+// ---------------------------------------------
+// Mapeo CoinGecko
 // ---------------------------------------------
 const COINGECKO_IDS = {
   btc: "bitcoin",
@@ -141,7 +162,7 @@ const COINGECKO_IDS = {
 };
 
 // ---------------------------------------------
-// ENDPOINT PRINCIPAL CORREGIDO
+// ENDPOINT PRINCIPAL CORREGIDO + SEÑALES BINANCE
 // ---------------------------------------------
 export async function GET(req) {
   try {
@@ -158,12 +179,10 @@ export async function GET(req) {
 
     const now = Date.now();
 
-    // 1) Cache
     if (CACHE[symbol] && now - CACHE[symbol].timestamp < CACHE_TTL) {
       return NextResponse.json(CACHE[symbol].data);
     }
 
-    // 2) Fetch datos actuales
     const currentRes = await fetch(
       `https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&market_data=true`
     );
@@ -176,7 +195,6 @@ export async function GET(req) {
     const current = await currentRes.json();
     const price = current.market_data.current_price.usd;
 
-    // 3) Fetch histórico
     const chartRes = await fetch(
       `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`
     );
@@ -186,56 +204,40 @@ export async function GET(req) {
     const closes = chartData.prices.map(([, p]) => p);
     const times = chartData.prices.map(([ts]) => Math.floor(ts / 1000));
 
-    // ---------------------------------------------
-    // CORRECCIÓN CRÍTICA: calcular primero, mapear después
-    // ---------------------------------------------
     const ema20Raw = ema(closes, 20);
     const ema50Raw = ema(closes, 50);
     const ema200Raw = ema(closes, 200);
     const rsiRaw = rsi(closes, 14);
 
-    const ema20Series = ema20Raw.map((v, i) => ({
-      time: times[i + (closes.length - ema20Raw.length)],
-      value: v
-    }));
+    const ema20 = ema20Raw.at(-1) || null;
+    const ema50 = ema50Raw.at(-1) || null;
+    const ema200 = ema200Raw.at(-1) || null;
+    const rsiValue = rsiRaw.at(-1) || null;
 
-    const ema50Series = ema50Raw.map((v, i) => ({
-      time: times[i + (closes.length - ema50Raw.length)],
-      value: v
-    }));
+    const { signal, confidence, trend } = generateSignal({
+      ema20,
+      ema50,
+      ema200,
+      rsi: rsiValue
+    });
 
-    const ema200Series = ema200Raw.map((v, i) => ({
-      time: times[i + (closes.length - ema200Raw.length)],
-      value: v
-    }));
-
-    const rsiSeries = rsiRaw.map((v, i) => ({
-      time: times[i + (closes.length - rsiRaw.length)],
-      value: v
-    }));
-
-    // ---------------------------------------------
-    // Respuesta final
-    // ---------------------------------------------
     const response = {
       symbol,
       price,
       indicators: {
-        ema20: ema20Raw.at(-1) || null,
-        ema50: ema50Raw.at(-1) || null,
-        ema200: ema200Raw.at(-1) || null,
-        rsi: rsiRaw.at(-1) || null
+        ema20,
+        ema50,
+        ema200,
+        rsi: rsiValue
       },
+      signal,
+      confidence,
+      trend,
       chart: {
-        ohlc: buildOhlc(chartData.prices),
-        ema20: ema20Series,
-        ema50: ema50Series,
-        ema200: ema200Series,
-        rsi: rsiSeries
+        ohlc: buildOhlc(chartData.prices)
       }
     };
 
-    // 4) Guardar en caché
     CACHE[symbol] = {
       timestamp: now,
       data: response
