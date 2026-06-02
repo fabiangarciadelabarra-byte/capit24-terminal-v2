@@ -111,7 +111,6 @@ const COINGECKO_IDS = {
   cro: "crypto-com-chain",
   flow: "flow",
   chz: "chiliz",
-  axs: "axie-infinity",
   theta: "theta-token",
   snx: "synthetix-network-token",
   crv: "curve-dao-token",
@@ -142,7 +141,7 @@ const COINGECKO_IDS = {
 };
 
 // ---------------------------------------------
-// ENDPOINT PRINCIPAL OPTIMIZADO
+// ENDPOINT PRINCIPAL CORREGIDO
 // ---------------------------------------------
 export async function GET(req) {
   try {
@@ -159,7 +158,7 @@ export async function GET(req) {
 
     const now = Date.now();
 
-    // 1) Si el caché está fresco → devolverlo
+    // 1) Cache
     if (CACHE[symbol] && now - CACHE[symbol].timestamp < CACHE_TTL) {
       return NextResponse.json(CACHE[symbol].data);
     }
@@ -187,34 +186,45 @@ export async function GET(req) {
     const closes = chartData.prices.map(([, p]) => p);
     const times = chartData.prices.map(([ts]) => Math.floor(ts / 1000));
 
-    const ema20Series = ema(closes, 20).map((v, i) => ({
-      time: times[i + (closes.length - ema20Series?.length)],
+    // ---------------------------------------------
+    // CORRECCIÓN CRÍTICA: calcular primero, mapear después
+    // ---------------------------------------------
+    const ema20Raw = ema(closes, 20);
+    const ema50Raw = ema(closes, 50);
+    const ema200Raw = ema(closes, 200);
+    const rsiRaw = rsi(closes, 14);
+
+    const ema20Series = ema20Raw.map((v, i) => ({
+      time: times[i + (closes.length - ema20Raw.length)],
       value: v
     }));
 
-    const ema50Series = ema(closes, 50).map((v, i) => ({
-      time: times[i + (closes.length - ema50Series?.length)],
+    const ema50Series = ema50Raw.map((v, i) => ({
+      time: times[i + (closes.length - ema50Raw.length)],
       value: v
     }));
 
-    const ema200Series = ema(closes, 200).map((v, i) => ({
-      time: times[i + (closes.length - ema200Series?.length)],
+    const ema200Series = ema200Raw.map((v, i) => ({
+      time: times[i + (closes.length - ema200Raw.length)],
       value: v
     }));
 
-    const rsiSeries = rsi(closes, 14).map((v, i) => ({
-      time: times[i + (closes.length - rsiSeries?.length)],
+    const rsiSeries = rsiRaw.map((v, i) => ({
+      time: times[i + (closes.length - rsiRaw.length)],
       value: v
     }));
 
+    // ---------------------------------------------
+    // Respuesta final
+    // ---------------------------------------------
     const response = {
       symbol,
       price,
       indicators: {
-        ema20: current.market_data.ema_20 || null,
-        ema50: current.market_data.ema_50 || null,
-        ema200: current.market_data.ema_200 || null,
-        rsi: current.market_data.rsi_14 || null
+        ema20: ema20Raw.at(-1) || null,
+        ema50: ema50Raw.at(-1) || null,
+        ema200: ema200Raw.at(-1) || null,
+        rsi: rsiRaw.at(-1) || null
       },
       chart: {
         ohlc: buildOhlc(chartData.prices),
