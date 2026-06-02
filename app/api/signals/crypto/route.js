@@ -84,7 +84,6 @@ function macd(values, fast = 12, slow = 26, signalPeriod = 9) {
 }
 
 function adx(values, period = 14) {
-  // Usamos solo precios de cierre como proxy de rango (simplificado)
   if (values.length <= period + 1) return [];
 
   const trs = [];
@@ -134,7 +133,6 @@ function adx(values, period = 14) {
     adxValues.push(dx);
   }
 
-  // Suavizado simple
   const result = [];
   const smoothPeriod = period;
   if (adxValues.length < smoothPeriod) return [];
@@ -159,7 +157,6 @@ function momentum(values, period = 10) {
   return result;
 }
 
-// Volumen proxy: usamos magnitud de cambios de precio como “actividad”
 function volumeProxy(values, period = 10) {
   if (values.length <= period) return [];
   const result = [];
@@ -174,7 +171,7 @@ function volumeProxy(values, period = 10) {
 }
 
 // ---------------------------------------------
-// ALGORITMO DE SEÑALES PRO (tipo Binance/TradingView)
+// ALGORITMO DE SEÑALES PRO
 // ---------------------------------------------
 function generateProSignal({ ema20, ema50, ema200, rsi, macdHist, adxValue, momValue, volNow, volPrev }) {
   let trend = "SIDEWAYS";
@@ -187,7 +184,6 @@ function generateProSignal({ ema20, ema50, ema200, rsi, macdHist, adxValue, momV
   let score = 0;
   let signal = "HOLD";
 
-  // Cruces EMAs
   if (ema20 && ema50) {
     if (ema20 > ema50) score += 15;
     if (ema20 < ema50) score -= 15;
@@ -197,36 +193,30 @@ function generateProSignal({ ema20, ema50, ema200, rsi, macdHist, adxValue, momV
     if (ema20 < ema200) score -= 20;
   }
 
-  // RSI extremo
   if (rsi !== null && rsi !== undefined) {
     if (rsi < 30) score += 20;
     if (rsi > 70) score -= 20;
   }
 
-  // MACD histograma
   if (macdHist !== null && macdHist !== undefined) {
     if (macdHist > 0) score += 15;
     if (macdHist < 0) score -= 15;
   }
 
-  // ADX (fuerza de tendencia)
   if (adxValue !== null && adxValue !== undefined) {
-    if (adxValue > 25) score *= 1.2; // refuerza la señal
+    if (adxValue > 25) score *= 1.2;
   }
 
-  // Momentum
   if (momValue !== null && momValue !== undefined) {
     if (momValue > 0) score += 10;
     if (momValue < 0) score -= 10;
   }
 
-  // Volumen proxy
   if (volNow !== null && volPrev !== null && volNow !== undefined && volPrev !== undefined) {
     if (volNow > volPrev) score *= 1.1;
     if (volNow < volPrev) score *= 0.9;
   }
 
-  // Normalizar score a -100 / +100
   const maxAbs = 100;
   if (score > maxAbs) score = maxAbs;
   if (score < -maxAbs) score = -maxAbs;
@@ -317,7 +307,7 @@ const COINGECKO_IDS = {
 };
 
 // ---------------------------------------------
-// ENDPOINT PRINCIPAL PRO
+// ENDPOINT PRINCIPAL PRO (90 días)
 // ---------------------------------------------
 export async function GET(req) {
   try {
@@ -349,14 +339,13 @@ export async function GET(req) {
     }
 
     const chartRes = await fetch(
-      `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7`
+      `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=90`
     );
 
     const chartData = chartRes.ok ? await chartRes.json() : { prices: [] };
     const closes = chartData.prices.map(([, p]) => p);
     const times = chartData.prices.map(([ts]) => Math.floor(ts / 1000));
 
-    // Fallback de precio: último close si no hay market_data
     if ((price === null || price === undefined) && closes.length > 0) {
       price = closes[closes.length - 1];
     }
