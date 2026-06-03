@@ -1,33 +1,34 @@
 import { NextResponse } from "next/server";
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
-
+// Timeframe mapping for Binance
 const TF_MAP = {
-  "5m": "5",
-  "15m": "15",
-  "30m": "30",
-  "1h": "60",
-  "4h": "240",
-  "1d": "D",
+  "5m": "5m",
+  "15m": "15m",
+  "30m": "30m",
+  "1h": "1h",
+  "4h": "4h",
+  "1d": "1d",
 };
 
 const ALLOWED_TF = Object.keys(TF_MAP);
 
-// Mapea tus símbolos internos a los símbolos de Finnhub (exchange:pair)
+// Binance symbols
 const SYMBOL_MAP = {
-  btc: "BINANCE:BTCUSDT",
-  eth: "BINANCE:ETHUSDT",
-  bnb: "BINANCE:BNBUSDT",
-  ada: "BINANCE:ADAUSDT",
-  atom: "BINANCE:ATOMUSDT",
-  aave: "BINANCE:AAVEUSDT",
-  algo: "BINANCE:ALGOUSDT",
-  avax: "BINANCE:AVAXUSDT",
-  sol: "BINANCE:SOLUSDT",
-  xrp: "BINANCE:XRPUSDT",
+  btc: "BTCUSDT",
+  eth: "ETHUSDT",
+  bnb: "BNBUSDT",
+  ada: "ADAUSDT",
+  atom: "ATOMUSDT",
+  aave: "AAVEUSDT",
+  algo: "ALGOUSDT",
+  avax: "AVAXUSDT",
+  sol: "SOLUSDT",
+  xrp: "XRPUSDT",
 };
 
-// ---------- Helpers técnicos ----------
+// ----------------------
+//   INDICATOR HELPERS
+// ----------------------
 
 function ema(values, period) {
   if (values.length < period) return null;
@@ -70,7 +71,6 @@ function rsi(values, period = 14) {
   return 100 - 100 / (1 + rs);
 }
 
-// ADX simplificado
 function adx(highs, lows, closes, period = 14) {
   if (
     highs.length < period + 1 ||
@@ -166,23 +166,18 @@ function deriveSignal(price, ema20Val, rsiVal, adxVal) {
 
 function deriveConfidence(rsiVal, adxVal) {
   if (!rsiVal) return 0;
-  const distFrom50 = Math.abs(rsiVal - 50); // 0–50
-  const rsiScore = Math.min(distFrom50 * 2, 100); // 0–100
-  const adxScore = adxVal ? Math.min(adxVal, 50) * 2 : 40; // aprox 0–100
+  const distFrom50 = Math.abs(rsiVal - 50);
+  const rsiScore = Math.min(distFrom50 * 2, 100);
+  const adxScore = adxVal ? Math.min(adxVal, 50) * 2 : 40;
   return Math.round(rsiScore * 0.6 + adxScore * 0.4);
 }
 
-// ---------- Handler principal ----------
+// ----------------------
+//   MAIN HANDLER
+// ----------------------
 
 export async function GET(req) {
   try {
-    if (!FINNHUB_API_KEY) {
-      return NextResponse.json(
-        { error: "FINNHUB_API_KEY no configurada" },
-        { status: 500 }
-      );
-    }
-
     const { searchParams } = new URL(req.url);
     const symbolParam = (searchParams.get("symbol") || "").toLowerCase();
     const tfParam = (searchParams.get("tf") || "1h").toLowerCase();
@@ -195,35 +190,26 @@ export async function GET(req) {
     }
 
     const tf = ALLOWED_TF.includes(tfParam) ? tfParam : "1h";
-    const resolution = TF_MAP[tf];
-    const finnhubSymbol = SYMBOL_MAP[symbolParam];
+    const interval = TF_MAP[tf];
+    const binanceSymbol = SYMBOL_MAP[symbolParam];
 
-    const url = `https://finnhub.io/api/v1/crypto/candle?symbol=${encodeURIComponent(
-      finnhubSymbol
-    )}&resolution=${resolution}&count=300&token=${FINNHUB_API_KEY}`;
+    const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=300`;
 
     const resp = await fetch(url);
     if (!resp.ok) {
       return NextResponse.json(
-        { error: "Error al obtener datos de Finnhub" },
+        { error: "Error al obtener datos de Binance" },
         { status: 502 }
       );
     }
 
-    const data = await resp.json();
+    const raw = await resp.json();
 
-    if (data.s !== "ok" || !data.c || data.c.length === 0) {
-      return NextResponse.json(
-        { error: "Sin datos suficientes para el símbolo/timeframe" },
-        { status: 502 }
-      );
-    }
-
-    const closes = data.c;
-    const highs = data.h;
-    const lows = data.l;
-    const opens = data.o;
-    const times = data.t;
+    const opens = raw.map((c) => parseFloat(c[1]));
+    const highs = raw.map((c) => parseFloat(c[2]));
+    const lows = raw.map((c) => parseFloat(c[3]));
+    const closes = raw.map((c) => parseFloat(c[4]));
+    const times = raw.map((c) => c[0]);
 
     const price = closes[closes.length - 1];
 
@@ -238,10 +224,7 @@ export async function GET(req) {
     const signal = deriveSignal(price, ema20Val, rsiVal, adxVal);
     const confidence = deriveConfidence(rsiVal, adxVal);
 
-    const updatedAt =
-      times && times.length
-        ? new Date(times[times.length - 1] * 1000).toISOString()
-        : null;
+    const updatedAt = new Date(times[times.length - 1]).toISOString();
 
     const chart = {
       o: opens,
