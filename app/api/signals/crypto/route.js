@@ -193,9 +193,12 @@ export async function GET(req) {
     const interval = TF_MAP[tf];
     const binanceSymbol = SYMBOL_MAP[symbolParam];
 
+    // Use proxy to bypass Cloudflare/WAF
     const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=300`;
+    const proxyUrl = `https://capit24-terminal-v2.vercel.app/api/proxy/binance?url=${encodeURIComponent(url)}`;
 
-    const resp = await fetch(url);
+    const resp = await fetch(proxyUrl);
+
     if (!resp.ok) {
       return NextResponse.json(
         { error: "Error al obtener datos de Binance" },
