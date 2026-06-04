@@ -5,14 +5,15 @@ const symbols = [
   "aave", "algo", "avax", "sol", "xrp"
 ];
 
-const ALLOWED_TF = ["5m", "15m", "30m", "1h", "4h", "1d"];
+// CoinGecko solo soporta 1m y 1d
+const ALLOWED_TF = ["1m", "1d"];
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const tf = ALLOWED_TF.includes(searchParams.get("tf"))
       ? searchParams.get("tf")
-      : "1h";
+      : "1m"; // default correcto
 
     const results = [];
 
