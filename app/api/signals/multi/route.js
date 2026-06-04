@@ -5,15 +5,15 @@ const symbols = [
   "aave", "algo", "avax", "sol", "xrp"
 ];
 
-// CoinGecko solo soporta 1m y 1d
-const ALLOWED_TF = ["1m", "1d"];
+// Timeframes permitidos (1h y 4h desactivados)
+const ALLOWED_TF = ["1m", "5m", "15m", "30m", "1d"];
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const tf = ALLOWED_TF.includes(searchParams.get("tf"))
       ? searchParams.get("tf")
-      : "1m"; // default correcto
+      : "1m";
 
     const results = [];
 
