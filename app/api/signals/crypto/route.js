@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Timeframes permitidos (1h y 4h desactivados)
-const ALLOWED_TF = ["1m", "5m", "15m", "30m", "1d"];
+// Timeframes permitidos (solo 1m)
+const ALLOWED_TF = ["1m"];
 
 // Mapeo de símbolos a CoinGecko
 const COINGECKO_IDS = {
@@ -74,32 +74,12 @@ function deriveConfidence(rsiVal) {
   return Math.min(Math.round(distFrom50 * 2), 100);
 }
 
-// ---- Agrupación de velas (simulación de TF) ----
-function aggregateCandles(raw, groupSize) {
-  const result = [];
-  for (let i = 0; i < raw.length; i += groupSize) {
-    const chunk = raw.slice(i, i + groupSize);
-    if (chunk.length < groupSize) break;
-
-    const t = chunk[0][0];
-    const o = chunk[0][1];
-    const h = Math.max(...chunk.map((c) => c[2]));
-    const l = Math.min(...chunk.map((c) => c[3]));
-    const c = chunk[chunk.length - 1][4];
-
-    result.push([t, o, h, l, c]);
-  }
-  return result;
-}
-
 // ---- Handler principal ----
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const symbol = (searchParams.get("symbol") || "").toLowerCase();
-    const tf = ALLOWED_TF.includes(searchParams.get("tf"))
-      ? searchParams.get("tf")
-      : "1m";
+    const tf = "1m"; // fijo
 
     if (!COINGECKO_IDS[symbol]) {
       return NextResponse.json(
@@ -110,11 +90,8 @@ export async function GET(req) {
 
     const id = COINGECKO_IDS[symbol];
 
-    // CoinGecko OHLC (1m o 1d)
-    const url =
-      tf === "1d"
-        ? `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=90`
-        : `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`;
+    // CoinGecko OHLC 1m (últimas 24h)
+    const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`;
 
     const resp = await fetch(url, { cache: "no-store" });
 
@@ -125,26 +102,13 @@ export async function GET(req) {
       );
     }
 
-    let raw = await resp.json();
+    const raw = await resp.json();
 
     if (!Array.isArray(raw) || raw.length === 0) {
       return NextResponse.json(
         { error: "Sin datos OHLC de CoinGecko" },
         { status: 502 }
       );
-    }
-
-    // Simulación de TF
-    const GROUP_MAP = {
-      "1m": 1,
-      "5m": 5,
-      "15m": 15,
-      "30m": 30,
-      "1d": 1440,
-    };
-
-    if (tf !== "1m" && tf !== "1d") {
-      raw = aggregateCandles(raw, GROUP_MAP[tf]);
     }
 
     const times = raw.map((c) => c[0]);
