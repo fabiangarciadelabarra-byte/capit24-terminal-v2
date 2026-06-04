@@ -1,49 +1,65 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-// Timeframes permitidos
-const ALLOWED_TF = ['1h', '4h', '1d'];
+const symbols = [
+  "btc", "eth", "bnb", "ada", "atom",
+  "aave", "algo", "avax", "sol", "xrp"
+];
 
-// 🔧 Aquí conectas tu lógica real de señales
-// Puedes llamar a tu proveedor, a otra API interna, o a tu módulo de cálculo
-async function getSignalsByTimeframe(tf) {
-  // Ejemplo 1: si ya tienes un endpoint interno en tu backend:
-  // const res = await fetch(`https://capit24.com/signals/multi?tf=${tf}`, { cache: 'no-store' });
+const ALLOWED_TF = ["5m", "15m", "30m", "1h", "4h", "1d"];
 
-  // Ejemplo 2: si usas tu propia lógica local (reemplaza esto con tu implementación real):
-  // return await buildSignalsForTimeframe(tf);
-
-  // Por ahora, como placeholder, devolvemos 1 objeto de ejemplo:
-  return {
-    BTC: {
-      symbol: 'btc',
-      price: 67000,
-      signal: tf === '1h' ? 'SELL' : tf === '4h' ? 'HOLD' : 'BUY',
-      confidence: tf === '1h' ? 30 : tf === '4h' ? 45 : 60,
-      trend: tf === '1h' ? 'DOWNTREND' : tf === '4h' ? 'SIDEWAYS' : 'UPTREND',
-      chart: {
-        ohlc: [],
-      },
-    },
-  };
-}
-
-export async function GET(request) {
+export async function GET(req) {
   try {
-    const { searchParams } = new URL(request.url);
-    const tfParam = searchParams.get('tf');
+    const { searchParams } = new URL(req.url);
+    const tf = ALLOWED_TF.includes(searchParams.get("tf"))
+      ? searchParams.get("tf")
+      : "1h";
 
-    // Timeframe por defecto
-    const tf = ALLOWED_TF.includes(tfParam) ? tfParam : '1d';
+    const results = [];
 
-    const data = await getSignalsByTimeframe(tf);
+    for (const symbol of symbols) {
+      try {
+        const url = `https://capit24-terminal-v2.vercel.app/api/signals/crypto?symbol=${symbol}&tf=${tf}`;
+        const resp = await fetch(url);
 
-    return NextResponse.json(data, {
-      status: 200,
-    });
-  } catch (error) {
-    console.error('Error en /api/signals/multi:', error);
+        if (!resp.ok) throw new Error("Crypto engine error");
+
+        const data = await resp.json();
+
+        results.push({
+          symbol,
+          price: data.price ?? null,
+          rsi: data.indicators?.rsi ?? null,
+          ema20: data.indicators?.ema20 ?? null,
+          ema50: data.indicators?.ema50 ?? null,
+          ema200: data.indicators?.ema200 ?? null,
+          trend: data.trend ?? "neutral",
+          signal: data.signal ?? "neutral",
+          confidence: data.confidence ?? 0,
+          updatedAt: data.updatedAt ?? null,
+        });
+
+      } catch (err) {
+        results.push({
+          symbol,
+          price: null,
+          rsi: null,
+          ema20: null,
+          ema50: null,
+          ema200: null,
+          trend: "neutral",
+          signal: "neutral",
+          confidence: 0,
+          updatedAt: null,
+        });
+      }
+    }
+
+    return NextResponse.json(results);
+
+  } catch (err) {
+    console.error("Error en /api/signals/multi:", err);
     return NextResponse.json(
-      { error: 'Error al obtener señales multi-timeframe' },
+      { error: "Error al obtener señales" },
       { status: 500 }
     );
   }
