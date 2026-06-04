@@ -5,21 +5,19 @@ const symbols = [
   "aave", "algo", "avax", "sol", "xrp"
 ];
 
-// Timeframes permitidos (1h y 4h desactivados)
-const ALLOWED_TF = ["1m", "5m", "15m", "30m", "1d"];
+// Solo 1m permitido
+const ALLOWED_TF = ["1m"];
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const tf = ALLOWED_TF.includes(searchParams.get("tf"))
-      ? searchParams.get("tf")
-      : "1m";
+    const tf = "1m"; // fijo
 
     const results = [];
 
     for (const symbol of symbols) {
       try {
-        const url = `https://capit24-terminal-v2.vercel.app/api/signals/crypto?symbol=${symbol}&tf=${tf}`;
+        const url = `https://capit24-terminal-v2.vercel.app/api/signals/crypto?symbol=${symbol}&tf=1m`;
         const resp = await fetch(url);
 
         if (!resp.ok) throw new Error("Crypto engine error");
