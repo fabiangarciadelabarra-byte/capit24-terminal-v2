@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// Timeframes permitidos
-const ALLOWED_TF = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
+// Timeframes permitidos (1h y 4h desactivados)
+const ALLOWED_TF = ["1m", "5m", "15m", "30m", "1d"];
 
 // Mapeo de símbolos a CoinGecko
 const COINGECKO_IDS = {
@@ -140,8 +140,6 @@ export async function GET(req) {
       "5m": 5,
       "15m": 15,
       "30m": 30,
-      "1h": 60,
-      "4h": 240,
       "1d": 1440,
     };
 
