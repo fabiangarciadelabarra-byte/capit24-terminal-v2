@@ -1,32 +1,23 @@
 import { NextResponse } from "next/server";
 
-const TF_MAP = {
-  "5m": { resolution: "5", count: 300 },
-  "15m": { resolution: "15", count: 300 },
-  "30m": { resolution: "30", count: 300 },
-  "1h": { resolution: "60", count: 300 },
-  "4h": { resolution: "240", count: 300 },
-  "1d": { resolution: "D", count: 300 },
+// Timeframes permitidos
+const ALLOWED_TF = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
+
+// Mapeo de símbolos a CoinGecko
+const COINGECKO_IDS = {
+  btc: "bitcoin",
+  eth: "ethereum",
+  bnb: "binancecoin",
+  ada: "cardano",
+  atom: "cosmos",
+  aave: "aave",
+  algo: "algorand",
+  avax: "avalanche-2",
+  sol: "solana",
+  xrp: "ripple",
 };
 
-const ALLOWED_TF = Object.keys(TF_MAP);
-
-const SYMBOL_MAP = {
-  btc: "BINANCE:BTC-USDT",
-  eth: "BINANCE:ETH-USDT",
-  bnb: "BINANCE:BNB-USDT",
-  ada: "BINANCE:ADA-USDT",
-  atom: "BINANCE:ATOM-USDT",
-  aave: "BINANCE:AAVE-USDT",
-  algo: "BINANCE:ALGO-USDT",
-  avax: "BINANCE:AVAX-USDT",
-  sol: "BINANCE:SOL-USDT",
-  xrp: "BINANCE:XRP-USDT",
-};
-
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
-
-// ---- indicadores básicos ----
+// ---- Indicadores ----
 function ema(values, period) {
   if (values.length < period) return null;
   const k = 2 / (period + 1);
@@ -83,58 +74,54 @@ function deriveConfidence(rsiVal) {
   return Math.min(Math.round(distFrom50 * 2), 100);
 }
 
-// ---- handler principal ----
+// ---- Handler principal ----
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const symbolParam = (searchParams.get("symbol") || "").toLowerCase();
-    const tfParam = (searchParams.get("tf") || "1h").toLowerCase();
+    const symbol = (searchParams.get("symbol") || "").toLowerCase();
+    const tf = ALLOWED_TF.includes(searchParams.get("tf"))
+      ? searchParams.get("tf")
+      : "1m";
 
-    if (!SYMBOL_MAP[symbolParam]) {
+    if (!COINGECKO_IDS[symbol]) {
       return NextResponse.json(
         { error: "Símbolo no soportado" },
         { status: 400 }
       );
     }
 
-    if (!FINNHUB_API_KEY) {
-      return NextResponse.json(
-        { error: "Falta FINNHUB_API_KEY en el entorno" },
-        { status: 500 }
-      );
-    }
+    const id = COINGECKO_IDS[symbol];
 
-    const tf = ALLOWED_TF.includes(tfParam) ? tfParam : "1h";
-    const { resolution, count } = TF_MAP[tf];
-    const finnhubSymbol = SYMBOL_MAP[symbolParam];
-
-    const url = `https://finnhub.io/api/v1/crypto/candle?symbol=${encodeURIComponent(
-      finnhubSymbol
-    )}&resolution=${resolution}&count=${count}&token=${FINNHUB_API_KEY}`;
+    // CoinGecko OHLC
+    const url =
+      tf === "1d"
+        ? `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=90`
+        : `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`;
 
     const resp = await fetch(url, { cache: "no-store" });
 
     if (!resp.ok) {
       return NextResponse.json(
-        { error: "Error al obtener datos de Finnhub", status: resp.status },
+        { error: "Error al obtener datos de CoinGecko" },
         { status: 502 }
       );
     }
 
-    const data = await resp.json();
+    const raw = await resp.json();
 
-    if (data.s !== "ok" || !data.c || data.c.length === 0) {
+    if (!Array.isArray(raw) || raw.length === 0) {
       return NextResponse.json(
-        { error: "Sin datos de Finnhub para este símbolo/timeframe" },
+        { error: "Sin datos OHLC de CoinGecko" },
         { status: 502 }
       );
     }
 
-    const closes = data.c.map((v) => Number(v));
-    const highs = data.h?.map((v) => Number(v)) || closes;
-    const lows = data.l?.map((v) => Number(v)) || closes;
-    const opens = data.o?.map((v) => Number(v)) || closes;
-    const times = data.t?.map((t) => t * 1000) || [];
+    // Formato CoinGecko: [timestamp, open, high, low, close]
+    const times = raw.map((c) => c[0]);
+    const opens = raw.map((c) => c[1]);
+    const highs = raw.map((c) => c[2]);
+    const lows = raw.map((c) => c[3]);
+    const closes = raw.map((c) => c[4]);
 
     const price = closes[closes.length - 1];
 
@@ -147,8 +134,7 @@ export async function GET(req) {
     const signal = deriveSignal(price, ema20Val, rsiVal);
     const confidence = deriveConfidence(rsiVal);
 
-    const updatedAt =
-      times.length > 0 ? new Date(times[times.length - 1]).toISOString() : null;
+    const updatedAt = new Date(times[times.length - 1]).toISOString();
 
     const chart = {
       o: opens,
@@ -160,7 +146,7 @@ export async function GET(req) {
     };
 
     return NextResponse.json({
-      symbol: symbolParam,
+      symbol,
       price,
       indicators: {
         ema20: ema20Val,
@@ -176,7 +162,7 @@ export async function GET(req) {
       timeframe: tf,
     });
   } catch (err) {
-    console.error("Error en /api/signals/crypto (Finnhub):", err);
+    console.error("Error en /api/signals/crypto (CoinGecko):", err);
     return NextResponse.json(
       { error: "Error interno en el motor de señales" },
       { status: 500 }
