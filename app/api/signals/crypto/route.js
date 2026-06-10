@@ -93,7 +93,13 @@ export async function GET(req) {
     // CoinGecko OHLC 1m (últimas 24h)
     const url = `https://api.coingecko.com/api/v3/coins/${id}/ohlc?vs_currency=usd&days=1`;
 
-    const resp = await fetch(url, { cache: "no-store" });
+    // ⭐ NUEVO: API KEY DE COINGECKO
+    const resp = await fetch(url, {
+      headers: {
+        "x-cg-demo-api-key": process.env.COINGECKO_API_KEY,
+      },
+      cache: "no-store",
+    });
 
     if (!resp.ok) {
       return NextResponse.json(
