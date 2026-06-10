@@ -3,13 +3,19 @@
 export default function SentimentPanel({ sentiment }) {
   if (!sentiment) return null;
 
-  const fg = sentiment.fear_greed;
-  const social = sentiment.social;
+  // Asegurar estructura válida
+  const fg = sentiment.fear_greed ?? {};
+  const social = sentiment.social ?? {};
+
+  const fgValue = Number(fg.value ?? 0);
+  const fgClass = fg.classification ?? "-";
+
+  const socialScore = Number(social.galaxy_score ?? 0);
 
   const mood =
-    fg.value >= 70 || social.galaxy_score >= 70
+    fgValue >= 70 || socialScore >= 70
       ? "Bullish"
-      : fg.value <= 30 || social.galaxy_score <= 30
+      : fgValue <= 30 || socialScore <= 30
       ? "Bearish"
       : "Neutral";
 
@@ -30,11 +36,11 @@ export default function SentimentPanel({ sentiment }) {
 
       <div style={{ marginTop: "15px" }}>
         <p>
-          <strong>Fear & Greed Index:</strong> {fg.value} ({fg.classification})
+          <strong>Fear & Greed Index:</strong> {fgValue} ({fgClass})
         </p>
 
         <p>
-          <strong>Social Galaxy Score:</strong> {social.galaxy_score}
+          <strong>Social Galaxy Score:</strong> {socialScore}
         </p>
 
         <p style={{ marginTop: "15px", color: moodColor, fontSize: "20px" }}>
