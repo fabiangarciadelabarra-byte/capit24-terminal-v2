@@ -26,8 +26,13 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }) {
 
       <tbody>
         {data.map((coin) => {
-          const symbol = coin.symbol.toUpperCase() + "USDT";
+          const symbol = (coin.symbol ?? "").toUpperCase() + "USDT";
           const isFav = watchlist.includes(symbol);
+
+          const price = Number(coin.current_price ?? 0);
+          const marketCap = Number(coin.market_cap ?? 0);
+          const volume = Number(coin.total_volume ?? 0);
+          const change24h = Number(coin.price_change_percentage_24h ?? 0);
 
           return (
             <tr
@@ -56,32 +61,39 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }) {
                 ★
               </td>
 
-              <td style={{ padding: "10px" }}>{coin.market_cap_rank}</td>
+              <td style={{ padding: "10px" }}>{coin.market_cap_rank ?? "-"}</td>
 
-              <td style={{ padding: "10px", display: "flex", alignItems: "center", gap: "10px" }}>
+              <td
+                style={{
+                  padding: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
                 <img src={coin.image} width={24} height={24} />
-                {coin.name} ({coin.symbol.toUpperCase()})
+                {coin.name} ({coin.symbol?.toUpperCase()})
               </td>
 
               <td style={{ padding: "10px" }}>
-                ${coin.current_price.toLocaleString()}
+                ${price.toLocaleString()}
               </td>
 
               <td
                 style={{
                   padding: "10px",
-                  color: coin.price_change_percentage_24h >= 0 ? "green" : "red",
+                  color: change24h >= 0 ? "green" : "red",
                 }}
               >
-                {coin.price_change_percentage_24h?.toFixed(2)}%
+                {change24h.toFixed(2)}%
               </td>
 
               <td style={{ padding: "10px" }}>
-                ${coin.market_cap.toLocaleString()}
+                ${marketCap.toLocaleString()}
               </td>
 
               <td style={{ padding: "10px" }}>
-                ${coin.total_volume.toLocaleString()}
+                ${volume.toLocaleString()}
               </td>
             </tr>
           );
