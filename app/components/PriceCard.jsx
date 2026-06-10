@@ -4,27 +4,32 @@ export default function PriceCard({ data, toggle, watchlist }) {
   if (!data) return null;
 
   const {
-    symbol,
-    price = 0,
-    market_cap = 0,
-    change_24h = 0
+    symbol = "-",
+    price,
+    market_cap,
+    change_24h
   } = data;
 
-  const formattedPrice = Number(price).toLocaleString("en-US", {
+  // Valores seguros
+  const safePrice = Number(price ?? 0);
+  const safeMarketCap = Number(market_cap ?? 0);
+  const safeChange = Number(change_24h ?? 0);
+
+  const formattedPrice = safePrice.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 2
   });
 
-  const formattedMarketCap = Number(market_cap).toLocaleString("en-US", {
+  const formattedMarketCap = safeMarketCap.toLocaleString("en-US", {
     style: "currency",
     currency: "USD",
     maximumFractionDigits: 0
   });
 
-  const formattedChange = Number(change_24h).toFixed(2);
+  const formattedChange = safeChange.toFixed(2);
 
-  const changeColor = change_24h >= 0 ? "green" : "red";
+  const changeColor = safeChange >= 0 ? "green" : "red";
 
   return (
     <div
