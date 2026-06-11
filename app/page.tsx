@@ -7,6 +7,7 @@ import BigChart from "./components/BigChart";
 import OrderFlowPanel from "./components/OrderFlowPanel";
 import LiquidityMapPanel from "./components/LiquidityMapPanel";
 import SentimentPanel from "./components/SentimentPanel";
+import SearchBar from "./components/SearchBar";   // ⭐ IMPORTANTE
 
 export default function Home() {
   const [market, setMarket] = useState<any[]>([]);
@@ -55,6 +56,9 @@ export default function Home() {
       <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>
         Capit24 Terminal
       </h1>
+
+      {/* ⭐ SEARCH BAR */}
+      <SearchBar data={market} onSelect={() => {}} />
 
       {/* PRICE CARD */}
       <div style={{ marginTop: "20px" }}>
