@@ -7,10 +7,11 @@ import BigChart from "./components/BigChart";
 import OrderFlowPanel from "./components/OrderFlowPanel";
 import LiquidityMapPanel from "./components/LiquidityMapPanel";
 import SentimentPanel from "./components/SentimentPanel";
-import SearchBar from "./components/SearchBar";   // ⭐ IMPORTANTE
+import SearchBar from "./components/SearchBar";
 
 export default function Home() {
   const [market, setMarket] = useState<any[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState("BTC"); // ⭐ NUEVO
   const [candles, setCandles] = useState<any[]>([]);
   const [orderflow, setOrderflow] = useState<any>(null);
   const [liquidity, setLiquidity] = useState<any>(null);
@@ -23,33 +24,10 @@ export default function Home() {
       .then((data) => setMarket(data));
   }, []);
 
-  // Fetch Candles
-  useEffect(() => {
-    fetch("/api/crypto/candles?symbol=BTCUSDT&interval=1h&limit=200")
-      .then((res) => res.json())
-      .then((data) => setCandles(data));
-  }, []);
-
-  // Fetch Orderflow
-  useEffect(() => {
-    fetch("/api/crypto/orderflow?symbol=BTCUSDT")
-      .then((res) => res.json())
-      .then((data) => setOrderflow(data));
-  }, []);
-
-  // Fetch Liquidity
-  useEffect(() => {
-    fetch("/api/crypto/liquidity?symbol=BTCUSDT")
-      .then((res) => res.json())
-      .then((data) => setLiquidity(data));
-  }, []);
-
-  // Fetch Sentiment
-  useEffect(() => {
-    fetch("/api/crypto/sentiment")
-      .then((res) => res.json())
-      .then((data) => setSentiment(data));
-  }, []);
+  // ⭐ Obtener la cripto seleccionada
+  const selectedCoin = market.find(
+    (c) => c.symbol.toUpperCase() === selectedSymbol.toUpperCase()
+  );
 
   return (
     <div style={{ padding: "40px" }}>
@@ -58,13 +36,18 @@ export default function Home() {
       </h1>
 
       {/* ⭐ SEARCH BAR */}
-      <SearchBar data={market} onSelect={() => {}} />
+      <SearchBar
+        data={market}
+        onSelect={(symbol) => {
+          setSelectedSymbol(symbol.replace("USDT", "")); // Guardamos solo BTC, ETH, SOL...
+        }}
+      />
 
-      {/* PRICE CARD */}
+      {/* ⭐ PRICE CARD DINÁMICO */}
       <div style={{ marginTop: "20px" }}>
-        {market.length > 0 && (
+        {selectedCoin && (
           <PriceCard
-            data={market[0]}
+            data={selectedCoin}
             toggle={() => {}}
             watchlist={[]}
           />
@@ -75,13 +58,15 @@ export default function Home() {
       <div style={{ marginTop: "40px" }}>
         <MarketTable
           data={market}
-          onSelect={() => {}}
+          onSelect={(symbol) => {
+            setSelectedSymbol(symbol.replace("USDT", ""));
+          }}
           toggle={() => {}}
           watchlist={[]}
         />
       </div>
 
-      {/* BIG CHART */}
+      {/* BIG CHART (lo dejaremos aunque no tenga datos aún) */}
       <div style={{ marginTop: "40px" }}>
         <BigChart data={candles} />
       </div>
