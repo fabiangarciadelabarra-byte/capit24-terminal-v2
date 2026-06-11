@@ -2,15 +2,23 @@
 
 import { useState } from "react";
 
-export default function SearchBar({ data, onSelect }) {
+export default function SearchBar({
+  data,
+  onSelect,
+}: {
+  data: any[];
+  onSelect: (symbol: string) => void;
+}) {
   const [query, setQuery] = useState("");
 
-  const filtered = query.length === 0
-    ? []
-    : data.filter((coin) =>
-        coin.name.toLowerCase().includes(query.toLowerCase()) ||
-        coin.symbol.toLowerCase().includes(query.toLowerCase())
-      );
+  const filtered =
+    query.length === 0
+      ? []
+      : data.filter(
+          (coin) =>
+            coin.name.toLowerCase().includes(query.toLowerCase()) ||
+            coin.symbol.toLowerCase().includes(query.toLowerCase())
+        );
 
   return (
     <div style={{ marginTop: "20px", position: "relative" }}>
