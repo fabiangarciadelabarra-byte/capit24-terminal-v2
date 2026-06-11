@@ -11,7 +11,7 @@ import SearchBar from "./components/SearchBar";
 
 export default function Home() {
   const [market, setMarket] = useState<any[]>([]);
-  const [selectedSymbol, setSelectedSymbol] = useState("BTC"); // ⭐ NUEVO
+  const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC"); // ⭐ TIPADO
   const [candles, setCandles] = useState<any[]>([]);
   const [orderflow, setOrderflow] = useState<any>(null);
   const [liquidity, setLiquidity] = useState<any>(null);
@@ -38,7 +38,7 @@ export default function Home() {
       {/* ⭐ SEARCH BAR */}
       <SearchBar
         data={market}
-        onSelect={(symbol) => {
+        onSelect={(symbol: string) => {
           setSelectedSymbol(symbol.replace("USDT", "")); // Guardamos solo BTC, ETH, SOL...
         }}
       />
@@ -58,7 +58,7 @@ export default function Home() {
       <div style={{ marginTop: "40px" }}>
         <MarketTable
           data={market}
-          onSelect={(symbol) => {
+          onSelect={(symbol: string) => {
             setSelectedSymbol(symbol.replace("USDT", ""));
           }}
           toggle={() => {}}
@@ -66,7 +66,7 @@ export default function Home() {
         />
       </div>
 
-      {/* BIG CHART (lo dejaremos aunque no tenga datos aún) */}
+      {/* BIG CHART */}
       <div style={{ marginTop: "40px" }}>
         <BigChart data={candles} />
       </div>
