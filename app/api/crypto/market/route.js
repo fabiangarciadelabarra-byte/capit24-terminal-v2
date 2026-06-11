@@ -6,7 +6,7 @@ export async function GET() {
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0",
-        "x-cg-demo-api-key": "CG-dummy-key" // DEMO KEY
+        "x-cg-pro-api-key": process.env.COINGECKO_API_KEY
       },
     });
 
@@ -28,4 +28,3 @@ export async function GET() {
     return Response.json({ error: "CoinGecko error", details: error });
   }
 }
-
