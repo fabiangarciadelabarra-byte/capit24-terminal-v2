@@ -6,7 +6,7 @@ export async function GET() {
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0",
-        "x-cg-pro-api-key": process.env.COINGECKO_API_KEY
+        "x-cg-api-key": process.env.COINGECKO_API_KEY
       },
     });
 
