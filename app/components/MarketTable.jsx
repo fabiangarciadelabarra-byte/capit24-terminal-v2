@@ -1,6 +1,16 @@
 "use client";
 
-export default function MarketTable({ data, onSelect, toggle, watchlist }) {
+export default function MarketTable({
+  data,
+  onSelect,
+  toggle,
+  watchlist,
+}: {
+  data: any[];
+  onSelect: (symbol: string) => void;
+  toggle: (symbol: string) => void;
+  watchlist: string[];
+}) {
   if (!data || data.length === 0) return <p>No market data available.</p>;
 
   return (
@@ -29,7 +39,6 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }) {
           const symbol = (coin.symbol ?? "").toUpperCase() + "USDT";
           const isFav = watchlist.includes(symbol);
 
-          // ⭐ CAMPOS CORREGIDOS PARA COINMARKETCAP
           const price = Number(coin.price ?? 0);
           const marketCap = Number(coin.market_cap ?? 0);
           const volume = Number(coin.volume_24h ?? 0);
@@ -45,7 +54,6 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }) {
                 borderBottom: "1px solid #333",
               }}
             >
-              {/* ⭐ FAVORITO */}
               <td
                 onClick={(e) => {
                   e.stopPropagation();
