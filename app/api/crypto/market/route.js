@@ -4,20 +4,23 @@ export async function GET() {
 
   try {
     const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "x-cg-demo-api-key": "CG-dummy-key" // DEMO KEY
+      },
     });
 
     const data = await response.json();
 
     const formatted = data.map((coin) => ({
-      symbol: coin.symbol.toUpperCase(),
-      name: coin.name,
-      price: coin.current_price,
-      market_cap: coin.market_cap,
-      volume_24h: coin.total_volume,
-      change_24h: coin.price_change_percentage_24h,
-      image: coin.image,
-      rank: coin.market_cap_rank,
+      symbol: coin.symbol?.toUpperCase() ?? "",
+      name: coin.name ?? "",
+      price: coin.current_price ?? 0,
+      market_cap: coin.market_cap ?? 0,
+      volume_24h: coin.total_volume ?? 0,
+      change_24h: coin.price_change_percentage_24h ?? 0,
+      image: coin.image ?? "",
+      rank: coin.market_cap_rank ?? 0,
     }));
 
     return Response.json(formatted);
@@ -25,3 +28,4 @@ export async function GET() {
     return Response.json({ error: "CoinGecko error", details: error });
   }
 }
+
