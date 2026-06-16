@@ -15,6 +15,7 @@ export default function Chart({ symbol }: Props) {
   const srLinesRef = useRef<any[]>([]);
   const liquidityZonesRef = useRef<any[]>([]);
   const orderBlocksRef = useRef<any[]>([]);
+  const breakerBlocksRef = useRef<any[]>([]);
 
   const [tf, setTf] = useState("15");
 
@@ -286,6 +287,72 @@ export default function Chart({ symbol }: Props) {
       });
     };
 
+    // === DRAW BREAKER BLOCKS ===
+    const drawBreakerBlocks = (blocks: any[], candles: any[]) => {
+      breakerBlocksRef.current.forEach((b) => b.remove());
+      breakerBlocksRef.current = [];
+
+      if (!blocks || blocks.length === 0 || !candles || candles.length === 0) return;
+
+      blocks.forEach((bb) => {
+        const isBullish = bb.type === "BULLISH_BREAKER";
+
+        const rectColor = isBullish
+          ? "rgba(0, 150, 255, 0.20)" // azul institucional
+          : "rgba(255, 140, 0, 0.20)"; // naranja institucional
+
+        const lineColor = isBullish
+          ? "rgba(0, 150, 255, 1)"
+          : "rgba(255, 140, 0, 1)";
+
+        const rectTop = mainChart.addAreaSeries({
+          topColor: rectColor,
+          bottomColor: rectColor,
+          lineColor: rectColor,
+          lineWidth: 0,
+        });
+
+        rectTop.setData([
+          { time: bb.startTime, value: bb.high },
+          { time: bb.endTime, value: bb.high },
+        ]);
+
+        const rectBottom = mainChart.addAreaSeries({
+          topColor: rectColor,
+          bottomColor: rectColor,
+          lineColor: rectColor,
+          lineWidth: 0,
+        });
+
+        rectBottom.setData([
+          { time: bb.startTime, value: bb.low },
+          { time: bb.endTime, value: bb.low },
+        ]);
+
+        const topLine = mainChart.addLineSeries({
+          color: lineColor,
+          lineWidth: 1,
+        });
+
+        topLine.setData([
+          { time: bb.startTime, value: bb.high },
+          { time: bb.endTime, value: bb.high },
+        ]);
+
+        const bottomLine = mainChart.addLineSeries({
+          color: lineColor,
+          lineWidth: 1,
+        });
+
+        bottomLine.setData([
+          { time: bb.startTime, value: bb.low },
+          { time: bb.endTime, value: bb.low },
+        ]);
+
+        breakerBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
+      });
+    };
+
     // === FETCH INDICATORS ===
     const fetchIndicators = async () => {
       const res = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
@@ -375,12 +442,28 @@ export default function Chart({ symbol }: Props) {
       drawOrderBlocks(json.blocks, candleJson.candles);
     };
 
+    // === FETCH BREAKER BLOCKS ===
+    const fetchBreakerBlocks = async () => {
+      const res = await fetch(`/api/breakerblocks?symbol=${symbol}&tf=${tf}`);
+      const json = await res.json();
+
+      if (!json.blocks) return;
+
+      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
+      const candleJson = await candleRes.json();
+
+      if (!candleJson.candles) return;
+
+      drawBreakerBlocks(json.blocks, candleJson.candles);
+    };
+
     // === FIRST LOAD ===
     fetchIndicators();
     fetchSignals();
     fetchSR();
     fetchLiquidityZones();
     fetchOrderBlocks();
+    fetchBreakerBlocks();
 
     // === REAL-TIME UPDATE ===
     const interval = setInterval(() => {
@@ -389,6 +472,7 @@ export default function Chart({ symbol }: Props) {
       fetchSR();
       fetchLiquidityZones();
       fetchOrderBlocks();
+      fetchBreakerBlocks();
     }, 10000);
 
     return () => clearInterval(interval);
@@ -441,10 +525,4 @@ export default function Chart({ symbol }: Props) {
       <div ref={rsiRef} style={{ width: "100%", height: "160px" }} />
 
       {/* MACD PANEL */}
-      <div style={{ marginTop: "20px", fontSize: "14px", color: "#aaa" }}>
-        MACD (12, 26, 9)
-      </div>
-      <div ref={macdRef} style={{ width: "100%", height: "180px" }} />
-    </div>
-  );
-}
+      <div style={{ marginTop: "20px", fontSize: "14
