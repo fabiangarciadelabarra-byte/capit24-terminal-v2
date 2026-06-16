@@ -172,19 +172,6 @@ export default function Chart({ symbol }: Props) {
             : z.type === "EQH"
             ? "rgba(255, 0, 0, 0.35)"
             : "rgba(0, 255, 0, 0.35)";
-
-        const rectTop = mainChart.addAreaSeries({
-          topColor: color,
-          bottomColor: color,
-          lineColor: color,
-          lineWidth: 0,
-        });
-
-        rectTop.setData([
-          { time: z.startTime, value: z.high },
-          { time: z.endTime, value: z.high },
-        ]);
-
         const rectBottom = mainChart.addAreaSeries({
           topColor: color,
           bottomColor: color,
@@ -351,6 +338,7 @@ export default function Chart({ symbol }: Props) {
 
         breakerBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
       });
+    };
     };
 
     // === FETCH INDICATORS ===
@@ -525,4 +513,10 @@ export default function Chart({ symbol }: Props) {
       <div ref={rsiRef} style={{ width: "100%", height: "160px" }} />
 
       {/* MACD PANEL */}
-      <div style={{ marginTop: "20px", fontSize: "14
+      <div style={{ marginTop: "20px", fontSize: "14px", color: "#aaa" }}>
+        MACD (12, 26, 9)
+      </div>
+      <div ref={macdRef} style={{ width: "100%", height: "180px" }} />
+    </div>
+  );
+}
