@@ -52,10 +52,9 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }: Props
 
             prevCopy[symbol] = newPrice;
 
-            // limpiar animación después de 600ms
             setTimeout(() => {
               setFlash((f) => ({ ...f, [symbol]: null }));
-            }, 600);
+            }, 800);
           }
         } catch (err) {
           console.error("Realtime price error:", symbol, err);
@@ -75,16 +74,29 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }: Props
 
   return (
     <>
-      {/* Estilos de animación */}
+      {/* Estilos avanzados tipo TradingView */}
       <style>
         {`
           .flash-up {
-            background-color: rgba(0, 255, 0, 0.25);
-            transition: background-color 0.6s ease;
+            background-color: rgba(0, 255, 0, 0.35);
+            animation: flashUp 0.8s cubic-bezier(0.22, 1, 0.36, 1);
           }
+
           .flash-down {
-            background-color: rgba(255, 0, 0, 0.25);
-            transition: background-color 0.6s ease;
+            background-color: rgba(255, 0, 0, 0.35);
+            animation: flashDown 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+          }
+
+          @keyframes flashUp {
+            0% { background-color: rgba(0, 255, 0, 0.55); transform: scale(0.98); }
+            50% { background-color: rgba(0, 255, 0, 0.25); transform: scale(1.01); }
+            100% { background-color: transparent; transform: scale(1); }
+          }
+
+          @keyframes flashDown {
+            0% { background-color: rgba(255, 0, 0, 0.55); transform: scale(0.98); }
+            50% { background-color: rgba(255, 0, 0, 0.25); transform: scale(1.01); }
+            100% { background-color: transparent; transform: scale(1); }
           }
         `}
       </style>
