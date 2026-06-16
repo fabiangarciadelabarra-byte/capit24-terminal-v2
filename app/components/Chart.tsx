@@ -8,15 +8,18 @@ interface Props {
 }
 
 export default function Chart({ symbol }: Props) {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-  const [tf, setTf] = useState("1"); // timeframe seleccionado
+  const mainRef = useRef<HTMLDivElement>(null);
+  const rsiRef = useRef<HTMLDivElement>(null);
+  const macdRef = useRef<HTMLDivElement>(null);
+
+  const [tf, setTf] = useState("15");
 
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (!mainRef.current || !rsiRef.current || !macdRef.current) return;
 
-    // Crear gráfico
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
+    // === MAIN CHART ===
+    const mainChart = createChart(mainRef.current, {
+      width: mainRef.current.clientWidth,
       height: 420,
       layout: {
         background: { type: ColorType.Solid, color: "#111" },
@@ -26,11 +29,10 @@ export default function Chart({ symbol }: Props) {
         vertLines: { color: "#222" },
         horzLines: { color: "#222" },
       },
-      crosshair: { mode: 1 },
       timeScale: { borderColor: "#333" },
     });
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = mainChart.addCandlestickSeries({
       upColor: "#0f0",
       downColor: "#f00",
       borderUpColor: "#0f0",
@@ -39,50 +41,104 @@ export default function Chart({ symbol }: Props) {
       wickDownColor: "#f00",
     });
 
-    // Obtener velas
-    const fetchCandles = async () => {
-      const res = await fetch(`/api/candles?symbol=${symbol}&tf=${tf}`);
+    const ema20Series = mainChart.addLineSeries({
+      color: "#FFD700",
+      lineWidth: 2,
+    });
+
+    const ema50Series = mainChart.addLineSeries({
+      color: "#00BFFF",
+      lineWidth: 2,
+    });
+
+    const ema200Series = mainChart.addLineSeries({
+      color: "#FF00FF",
+      lineWidth: 2,
+    });
+
+    const vwapSeries = mainChart.addLineSeries({
+      color: "#FFFFFF",
+      lineWidth: 2,
+    });
+
+    // === RSI PANEL ===
+    const rsiChart = createChart(rsiRef.current, {
+      width: rsiRef.current.clientWidth,
+      height: 160,
+      layout: {
+        background: { type: ColorType.Solid, color: "#111" },
+        textColor: "white",
+      },
+      grid: {
+        vertLines: { color: "#222" },
+        horzLines: { color: "#222" },
+      },
+      timeScale: { visible: false },
+    });
+
+    const rsiSeries = rsiChart.addLineSeries({
+      color: "#FFA500",
+      lineWidth: 2,
+    });
+
+    // === MACD PANEL ===
+    const macdChart = createChart(macdRef.current, {
+      width: macdRef.current.clientWidth,
+      height: 180,
+      layout: {
+        background: { type: ColorType.Solid, color: "#111" },
+        textColor: "white",
+      },
+      grid: {
+        vertLines: { color: "#222" },
+        horzLines: { color: "#222" },
+      },
+      timeScale: { borderColor: "#333" },
+    });
+
+    const macdLineSeries = macdChart.addLineSeries({
+      color: "#00FF00",
+      lineWidth: 2,
+    });
+
+    const signalSeries = macdChart.addLineSeries({
+      color: "#FF0000",
+      lineWidth: 2,
+    });
+
+    const histogramSeries = macdChart.addHistogramSeries({
+      color: "#888",
+    });
+
+    // === FETCH INDICATORS ===
+    const fetchIndicators = async () => {
+      const res = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
       const json = await res.json();
 
-      if (!json || json.s !== "ok") return;
+      if (!json || !json.candles) return;
 
-      const candles = json.t.map((t: number, i: number) => ({
-        time: t,
-        open: json.o[i],
-        high: json.h[i],
-        low: json.l[i],
-        close: json.c[i],
-      }));
+      candleSeries.setData(json.candles);
+      ema20Series.setData(json.ema20);
+      ema50Series.setData(json.ema50);
+      ema200Series.setData(json.ema200);
+      vwapSeries.setData(json.vwap);
 
-      candleSeries.setData(candles);
+      rsiSeries.setData(json.rsi14);
+
+      macdLineSeries.setData(json.macd.macdLine);
+      signalSeries.setData(json.macd.signal);
+      histogramSeries.setData(json.macd.histogram);
     };
 
-    // Actualizar precio en vivo
-    const fetchPrice = async () => {
-      const res = await fetch(`/api/quote?symbol=${symbol}`);
-      const json = await res.json();
+    fetchIndicators();
 
-      if (json?.c) {
-        candleSeries.update({
-          time: Math.floor(Date.now() / 1000),
-          open: json.c,
-          high: json.c,
-          low: json.c,
-          close: json.c,
-        });
-      }
-    };
-
-    fetchCandles();
-    fetchPrice();
-
-    const interval = setInterval(fetchPrice, 10000);
+    const interval = setInterval(fetchIndicators, 10000);
     return () => clearInterval(interval);
   }, [symbol, tf]);
 
   return (
     <div style={{ width: "100%", marginTop: "20px" }}>
-      {/* Selector de timeframes */}
+      {/* TIMEFRAME SELECTOR */}
       <div
         style={{
           display: "flex",
@@ -117,14 +173,32 @@ export default function Chart({ symbol }: Props) {
         ))}
       </div>
 
-      {/* Contenedor del gráfico */}
+      {/* MAIN CHART */}
+      <div ref={mainRef} style={{ width: "100%", height: "420px" }} />
+
+      {/* RSI PANEL */}
       <div
-        ref={chartContainerRef}
         style={{
-          width: "100%",
-          height: "420px",
+          marginTop: "20px",
+          fontSize: "14px",
+          color: "#aaa",
         }}
-      />
+      >
+        RSI (14)
+      </div>
+      <div ref={rsiRef} style={{ width: "100%", height: "160px" }} />
+
+      {/* MACD PANEL */}
+      <div
+        style={{
+          marginTop: "20px",
+          fontSize: "14px",
+          color: "#aaa",
+        }}
+      >
+        MACD (12, 26, 9)
+      </div>
+      <div ref={macdRef} style={{ width: "100%", height: "180px" }} />
     </div>
   );
 }
