@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import PriceCard from "./components/PriceCard";
 import MarketTable from "./components/MarketTable";
 import SearchBar from "./components/SearchBar";
+import Chart from "./components/Chart"; // ← IMPORTANTE
 
 export default function Home() {
   const [market, setMarket] = useState<any[]>([]);
@@ -44,6 +45,11 @@ export default function Home() {
             watchlist={[]}
           />
         )}
+      </div>
+
+      {/* CHART (NUEVO) */}
+      <div style={{ marginTop: "40px" }}>
+        <Chart symbol={selectedSymbol} />
       </div>
 
       {/* MARKET TABLE */}
