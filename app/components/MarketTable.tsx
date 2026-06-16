@@ -1,17 +1,54 @@
 "use client";
 
-export default function MarketTable({
-  data,
-  onSelect,
-  toggle,
-  watchlist,
-}: {
-  data: any[];
+import { useEffect, useState } from "react";
+
+interface CoinData {
+  symbol: string;
+  name: string;
+  price: number;
+  market_cap: number;
+  volume_24h: number;
+  change_24h: number;
+  rank: number;
+  image: string;
+}
+
+interface Props {
+  data: CoinData[];
   onSelect: (symbol: string) => void;
   toggle: (symbol: string) => void;
   watchlist: string[];
-}) {
-  if (!data || data.length === 0) return <p>No market data available.</p>;
+}
+
+export default function MarketTable({ data, onSelect, toggle, watchlist }: Props) {
+  const [realtime, setRealtime] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+
+    const updatePrices = async () => {
+      const results: Record<string, any> = {};
+
+      for (const coin of data) {
+        const symbol = coin.symbol.replace("USDT", "");
+
+        try {
+          const res = await fetch(`/api/quote?symbol=${symbol}`);
+          const json = await res.json();
+          results[symbol] = json;
+        } catch (err) {
+          console.error("Realtime price error:", symbol, err);
+        }
+      }
+
+      setRealtime(results);
+    };
+
+    updatePrices(); // primera carga
+
+    const interval = setInterval(updatePrices, 10000); // cada 10s
+    return () => clearInterval(interval);
+  }, [data]);
 
   return (
     <table
@@ -36,18 +73,19 @@ export default function MarketTable({
 
       <tbody>
         {data.map((coin) => {
-          const symbol = (coin.symbol ?? "").toUpperCase() + "USDT";
-          const isFav = watchlist.includes(symbol);
+          const symbol = coin.symbol.replace("USDT", "");
+          const live = realtime[symbol];
 
-          const price = Number(coin.price ?? 0);
-          const marketCap = Number(coin.market_cap ?? 0);
-          const volume = Number(coin.volume_24h ?? 0);
-          const change24h = Number(coin.change_24h ?? 0);
+          const price = live?.c
+            ? live.c.toFixed(2)
+            : coin.price.toFixed(2);
+
+          const isFav = watchlist.includes(coin.symbol);
 
           return (
             <tr
-              key={coin.id ?? coin.symbol}
-              onClick={() => onSelect(symbol)}
+              key={coin.symbol}
+              onClick={() => onSelect(coin.symbol)}
               style={{
                 cursor: "pointer",
                 background: "#111",
@@ -57,7 +95,7 @@ export default function MarketTable({
               <td
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggle(symbol);
+                  toggle(coin.symbol);
                 }}
                 style={{
                   padding: "10px",
@@ -70,7 +108,7 @@ export default function MarketTable({
                 ★
               </td>
 
-              <td style={{ padding: "10px" }}>{coin.rank ?? "-"}</td>
+              <td style={{ padding: "10px" }}>{coin.rank}</td>
 
               <td
                 style={{
@@ -81,28 +119,26 @@ export default function MarketTable({
                 }}
               >
                 <img src={coin.image} width={24} height={24} />
-                {coin.name} ({coin.symbol?.toUpperCase()})
+                {coin.name} ({coin.symbol})
               </td>
 
-              <td style={{ padding: "10px" }}>
-                ${price.toLocaleString()}
-              </td>
+              <td style={{ padding: "10px" }}>${price}</td>
 
               <td
                 style={{
                   padding: "10px",
-                  color: change24h >= 0 ? "green" : "red",
+                  color: coin.change_24h >= 0 ? "green" : "red",
                 }}
               >
-                {change24h.toFixed(2)}%
+                {coin.change_24h.toFixed(2)}%
               </td>
 
               <td style={{ padding: "10px" }}>
-                ${marketCap.toLocaleString()}
+                ${coin.market_cap.toLocaleString()}
               </td>
 
               <td style={{ padding: "10px" }}>
-                ${volume.toLocaleString()}
+                ${coin.volume_24h.toLocaleString()}
               </td>
             </tr>
           );
