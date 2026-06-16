@@ -22,12 +22,14 @@ interface Props {
 
 export default function MarketTable({ data, onSelect, toggle, watchlist }: Props) {
   const [realtime, setRealtime] = useState<Record<string, any>>({});
+  const [previous, setPrevious] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!data || data.length === 0) return;
 
     const updatePrices = async () => {
       const results: Record<string, any> = {};
+      const prevCopy = { ...previous };
 
       for (const coin of data) {
         const symbol = coin.symbol.replace("USDT", "");
@@ -36,11 +38,17 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }: Props
           const res = await fetch(`/api/quote?symbol=${symbol}`);
           const json = await res.json();
           results[symbol] = json;
+
+          // Guardar precio previo para comparar
+          if (json?.c) {
+            prevCopy[symbol] = json.c;
+          }
         } catch (err) {
           console.error("Realtime price error:", symbol, err);
         }
       }
 
+      setPrevious(prevCopy);
       setRealtime(results);
     };
 
@@ -79,6 +87,15 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }: Props
           const price = live?.c
             ? live.c.toFixed(2)
             : coin.price.toFixed(2);
+
+          // Comparar precio actual vs previo
+          const prev = previous[symbol];
+          let color = "white";
+
+          if (live?.c && prev) {
+            if (live.c > prev) color = "limegreen";
+            if (live.c < prev) color = "red";
+          }
 
           const isFav = watchlist.includes(coin.symbol);
 
@@ -122,7 +139,9 @@ export default function MarketTable({ data, onSelect, toggle, watchlist }: Props
                 {coin.name} ({coin.symbol})
               </td>
 
-              <td style={{ padding: "10px" }}>${price}</td>
+              <td style={{ padding: "10px", color }}>
+                ${price}
+              </td>
 
               <td
                 style={{
