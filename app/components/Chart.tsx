@@ -14,6 +14,7 @@ export default function Chart({ symbol }: Props) {
 
   const srLinesRef = useRef<any[]>([]);
   const liquidityZonesRef = useRef<any[]>([]);
+  const orderBlocksRef = useRef<any[]>([]);
 
   const [tf, setTf] = useState("15");
 
@@ -219,6 +220,72 @@ export default function Chart({ symbol }: Props) {
       });
     };
 
+    // === DRAW ORDER BLOCKS ===
+    const drawOrderBlocks = (blocks: any[], candles: any[]) => {
+      orderBlocksRef.current.forEach((b) => b.remove());
+      orderBlocksRef.current = [];
+
+      if (!blocks || blocks.length === 0 || !candles || candles.length === 0) return;
+
+      blocks.forEach((ob) => {
+        const isBullish = ob.type === "BULLISH_OB";
+
+        const rectColor = isBullish
+          ? "rgba(0, 255, 0, 0.20)"
+          : "rgba(255, 0, 0, 0.20)";
+
+        const lineColor = isBullish
+          ? "rgba(0, 255, 0, 1)"
+          : "rgba(255, 0, 0, 1)";
+
+        const rectTop = mainChart.addAreaSeries({
+          topColor: rectColor,
+          bottomColor: rectColor,
+          lineColor: rectColor,
+          lineWidth: 0,
+        });
+
+        rectTop.setData([
+          { time: ob.startTime, value: ob.high },
+          { time: ob.endTime, value: ob.high },
+        ]);
+
+        const rectBottom = mainChart.addAreaSeries({
+          topColor: rectColor,
+          bottomColor: rectColor,
+          lineColor: rectColor,
+          lineWidth: 0,
+        });
+
+        rectBottom.setData([
+          { time: ob.startTime, value: ob.low },
+          { time: ob.endTime, value: ob.low },
+        ]);
+
+        const topLine = mainChart.addLineSeries({
+          color: lineColor,
+          lineWidth: 1,
+        });
+
+        topLine.setData([
+          { time: ob.startTime, value: ob.high },
+          { time: ob.endTime, value: ob.high },
+        ]);
+
+        const bottomLine = mainChart.addLineSeries({
+          color: lineColor,
+          lineWidth: 1,
+        });
+
+        bottomLine.setData([
+          { time: ob.startTime, value: ob.low },
+          { time: ob.endTime, value: ob.low },
+        ]);
+
+        orderBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
+      });
+    };
+
     // === FETCH INDICATORS ===
     const fetchIndicators = async () => {
       const res = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
@@ -293,11 +360,27 @@ export default function Chart({ symbol }: Props) {
       drawLiquidityZones(json.zones, candleJson.candles);
     };
 
+    // === FETCH ORDER BLOCKS ===
+    const fetchOrderBlocks = async () => {
+      const res = await fetch(`/api/orderblocks?symbol=${symbol}&tf=${tf}`);
+      const json = await res.json();
+
+      if (!json.blocks) return;
+
+      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
+      const candleJson = await candleRes.json();
+
+      if (!candleJson.candles) return;
+
+      drawOrderBlocks(json.blocks, candleJson.candles);
+    };
+
     // === FIRST LOAD ===
     fetchIndicators();
     fetchSignals();
     fetchSR();
     fetchLiquidityZones();
+    fetchOrderBlocks();
 
     // === REAL-TIME UPDATE ===
     const interval = setInterval(() => {
@@ -305,6 +388,7 @@ export default function Chart({ symbol }: Props) {
       fetchSignals();
       fetchSR();
       fetchLiquidityZones();
+      fetchOrderBlocks();
     }, 10000);
 
     return () => clearInterval(interval);
