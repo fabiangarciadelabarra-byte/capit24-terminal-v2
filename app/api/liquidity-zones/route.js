@@ -29,7 +29,6 @@ export async function GET(req) {
     // === FVG (Fair Value Gaps) ===
     for (let i = 2; i < candles.length; i++) {
       const c0 = candles[i - 2];
-      const c1 = candles[i - 1];
       const c2 = candles[i];
 
       // FVG alcista
