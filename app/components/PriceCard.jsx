@@ -1,80 +1,58 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 export default function PriceCard({ data, toggle, watchlist }) {
-  if (!data) return null;
+  const [realtime, setRealtime] = useState(null);
 
-  const {
-    symbol = "-",
-    price,
-    market_cap,
-    change_24h
-  } = data;
+  useEffect(() => {
+    if (!data?.symbol) return;
 
-  // Valores seguros
-  const safePrice = Number(price ?? 0);
-  const safeMarketCap = Number(market_cap ?? 0);
-  const safeChange = Number(change_24h ?? 0);
+    // Convertir BTCUSDT → BTC
+    const symbol = data.symbol.replace("USDT", "");
 
-  const formattedPrice = safePrice.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2
-  });
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch(`/api/quote?symbol=${symbol}`);
+        const json = await res.json();
+        setRealtime(json);
+      } catch (err) {
+        console.error("Realtime price error:", err);
+      }
+    };
 
-  const formattedMarketCap = safeMarketCap.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0
-  });
+    fetchPrice(); // primera carga
 
-  const formattedChange = safeChange.toFixed(2);
+    const interval = setInterval(fetchPrice, 10000); // cada 10s
+    return () => clearInterval(interval);
+  }, [data]);
 
-  const changeColor = safeChange >= 0 ? "green" : "red";
+  // Precio final mostrado
+  const price = realtime?.c
+    ? realtime.c.toFixed(2)
+    : data.price?.toFixed(2);
 
   return (
     <div
       style={{
-        position: "relative",
         padding: "20px",
-        borderRadius: "10px",
+        borderRadius: "12px",
         background: "#111",
         color: "white",
-        border: "1px solid #333",
-        boxShadow: "0 0 10px rgba(0,0,0,0.3)"
+        width: "100%",
+        maxWidth: "400px",
       }}
     >
-      {/* ⭐ BOTÓN DE FAVORITO */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggle(symbol + "USDT");
-        }}
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          background: "none",
-          border: "none",
-          fontSize: "22px",
-          cursor: "pointer",
-          color: watchlist.includes(symbol + "USDT") ? "gold" : "#555",
-        }}
-      >
-        ★
-      </button>
+      <h2 style={{ fontSize: "24px", fontWeight: "bold" }}>
+        {data.name} ({data.symbol})
+      </h2>
 
-      <h2>{symbol}</h2>
-
-      <p style={{ fontSize: "22px", margin: "10px 0" }}>
-        {formattedPrice}
+      <p style={{ fontSize: "32px", marginTop: "10px" }}>
+        ${price}
       </p>
 
-      <p style={{ margin: "5px 0" }}>
-        Market Cap: {formattedMarketCap}
-      </p>
-
-      <p style={{ margin: "5px 0", color: changeColor }}>
-        24h: {formattedChange}%
+      <p style={{ opacity: 0.7, marginTop: "5px" }}>
+        Precio en tiempo real (Finnhub)
       </p>
     </div>
   );
