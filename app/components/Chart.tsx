@@ -12,7 +12,8 @@ export default function Chart({ symbol }: Props) {
   const rsiRef = useRef<HTMLDivElement>(null);
   const macdRef = useRef<HTMLDivElement>(null);
 
-  const srLinesRef = useRef<any[]>([]); // soportes/resistencias
+  const srLinesRef = useRef<any[]>([]);
+  const liquidityZonesRef = useRef<any[]>([]);
 
   const [tf, setTf] = useState("15");
 
@@ -112,7 +113,7 @@ export default function Chart({ symbol }: Props) {
       color: "#888",
     });
 
-    // === DIBUJAR SOPORTES Y RESISTENCIAS ===
+    // === DRAW SR LEVELS ===
     const drawSR = (supports: number[], resistances: number[], candles: any[]) => {
       srLinesRef.current.forEach((l) => l.remove());
       srLinesRef.current = [];
@@ -153,6 +154,71 @@ export default function Chart({ symbol }: Props) {
       });
     };
 
+    // === DRAW LIQUIDITY ZONES ===
+    const drawLiquidityZones = (zones: any[], candles: any[]) => {
+      liquidityZonesRef.current.forEach((z) => z.remove());
+      liquidityZonesRef.current = [];
+
+      if (!zones || zones.length === 0 || !candles || candles.length === 0) return;
+
+      zones.forEach((z) => {
+        const color =
+          z.type === "FVG_UP"
+            ? "rgba(255, 215, 0, 0.25)"
+            : z.type === "FVG_DOWN"
+            ? "rgba(255, 0, 0, 0.25)"
+            : z.type === "EQH"
+            ? "rgba(255, 0, 0, 0.35)"
+            : "rgba(0, 255, 0, 0.35)";
+
+        const rectTop = mainChart.addAreaSeries({
+          topColor: color,
+          bottomColor: color,
+          lineColor: color,
+          lineWidth: 0,
+        });
+
+        rectTop.setData([
+          { time: z.startTime, value: z.high },
+          { time: z.endTime, value: z.high },
+        ]);
+
+        const rectBottom = mainChart.addAreaSeries({
+          topColor: color,
+          bottomColor: color,
+          lineColor: color,
+          lineWidth: 0,
+        });
+
+        rectBottom.setData([
+          { time: z.startTime, value: z.low },
+          { time: z.endTime, value: z.low },
+        ]);
+
+        const topLine = mainChart.addLineSeries({
+          color: color.replace("0.25", "1").replace("0.35", "1"),
+          lineWidth: 1,
+        });
+
+        topLine.setData([
+          { time: z.startTime, value: z.high },
+          { time: z.endTime, value: z.high },
+        ]);
+
+        const bottomLine = mainChart.addLineSeries({
+          color: color.replace("0.25", "1").replace("0.35", "1"),
+          lineWidth: 1,
+        });
+
+        bottomLine.setData([
+          { time: z.startTime, value: z.low },
+          { time: z.endTime, value: z.low },
+        ]);
+
+        liquidityZonesRef.current.push(rectTop, rectBottom, topLine, bottomLine);
+      });
+    };
+
     // === FETCH INDICATORS ===
     const fetchIndicators = async () => {
       const res = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
@@ -173,7 +239,7 @@ export default function Chart({ symbol }: Props) {
       histogramSeries.setData(json.macd.histogram);
     };
 
-    // === FETCH SIGNALS (BUY/SELL) ===
+    // === FETCH SIGNALS ===
     const fetchSignals = async () => {
       const res = await fetch(`/api/signals?symbol=${symbol}&tf=${tf}`);
       const json = await res.json();
@@ -197,7 +263,7 @@ export default function Chart({ symbol }: Props) {
       candleSeries.setMarkers(markers);
     };
 
-    // === FETCH SR LEVELS ===
+    // === FETCH SR ===
     const fetchSR = async () => {
       const res = await fetch(`/api/sr?symbol=${symbol}&tf=${tf}`);
       const json = await res.json();
@@ -212,16 +278,33 @@ export default function Chart({ symbol }: Props) {
       drawSR(json.supports, json.resistances, candleJson.candles);
     };
 
+    // === FETCH LIQUIDITY ZONES ===
+    const fetchLiquidityZones = async () => {
+      const res = await fetch(`/api/liquidity-zones?symbol=${symbol}&tf=${tf}`);
+      const json = await res.json();
+
+      if (!json.zones) return;
+
+      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
+      const candleJson = await candleRes.json();
+
+      if (!candleJson.candles) return;
+
+      drawLiquidityZones(json.zones, candleJson.candles);
+    };
+
     // === FIRST LOAD ===
     fetchIndicators();
     fetchSignals();
     fetchSR();
+    fetchLiquidityZones();
 
     // === REAL-TIME UPDATE ===
     const interval = setInterval(() => {
       fetchIndicators();
       fetchSignals();
       fetchSR();
+      fetchLiquidityZones();
     }, 10000);
 
     return () => clearInterval(interval);
