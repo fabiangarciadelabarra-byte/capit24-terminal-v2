@@ -275,63 +275,6 @@ export default function Chart({ symbol }: Props) {
         orderBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
       });
     };
-
-    // === DRAW BREAKER BLOCKS ===
-    const drawBreakerBlocks = (blocks: any[], candles: any[]) => {
-      breakerBlocksRef.current.forEach((b) => b.remove());
-      breakerBlocksRef.current = [];
-
-      if (!blocks || blocks.length === 0 || !candles || candles.length === 0) return;
-
-      blocks.forEach((bb) => {
-        const isBullish = bb.type === "BULLISH_BREAKER";
-
-        const rectColor = isBullish
-          ? "rgba(0, 150, 255, 0.20)"
-          : "rgba(255, 140, 0, 0.20)";
-
-        const lineColor = isBullish
-          ? "rgba(0, 150, 255, 1)"
-          : "rgba(255, 140, 0, 1)";
-
-        const rectTop = mainChart.addAreaSeries({
-          topColor: rectColor,
-          bottomColor: rectColor,
-          lineColor: rectColor,
-          lineWidth: 1,
-        });
-
-        rectTop.setData([
-          { time: bb.startTime, value: bb.high },
-          { time: bb.endTime, value: bb.high },
-        ]);
-
-        const rectBottom = mainChart.addAreaSeries({
-          topColor: rectColor,
-          bottomColor: rectColor,
-          lineColor: rectColor,
-          lineWidth: 1,
-        });
-
-        rectBottom.setData([
-          { time: bb.startTime, value: bb.low },
-          { time: bb.endTime, value: bb.low },
-        ]);
-
-        const topLine = mainChart.addLineSeries({
-          color: lineColor,
-          lineWidth: 1,
-        });
-
-        topLine.setData([
-          { time: bb.startTime, value: bb.high },
-          { time: bb.endTime, value: bb.high },
-        ]);
-
-        const bottomLine = mainChart.addLineSeries({
-          color: lineColor,
-          lineWidth: 1,
-        });
         bottomLine.setData([
           { time: ob.startTime, value: ob.low },
           { time: ob.endTime, value: ob.low },
@@ -586,5 +529,3 @@ export default function Chart({ symbol }: Props) {
     </div>
   );
 }
-
-        
