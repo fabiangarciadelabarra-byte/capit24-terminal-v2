@@ -12,10 +12,14 @@ export default function Chart({ symbol }: Props) {
   const rsiRef = useRef<HTMLDivElement>(null);
   const macdRef = useRef<HTMLDivElement>(null);
 
+  // === EXISTING REFS ===
   const srLinesRef = useRef<any[]>([]);
   const liquidityZonesRef = useRef<any[]>([]);
   const orderBlocksRef = useRef<any[]>([]);
   const breakerBlocksRef = useRef<any[]>([]);
+
+  // === BOS / CHoCH ===
+  const bosChochRef = useRef<any[]>([]);
 
   const [tf, setTf] = useState("15");
 
@@ -155,7 +159,6 @@ export default function Chart({ symbol }: Props) {
         srLinesRef.current.push(line);
       });
     };
-
     // === DRAW LIQUIDITY ZONES ===
     const drawLiquidityZones = (zones: any[], candles: any[]) => {
       liquidityZonesRef.current.forEach((z) => z.remove());
@@ -172,6 +175,7 @@ export default function Chart({ symbol }: Props) {
             : z.type === "EQH"
             ? "rgba(255, 0, 0, 0.35)"
             : "rgba(0, 255, 0, 0.35)";
+
         const rectBottom = mainChart.addAreaSeries({
           topColor: color,
           bottomColor: color,
@@ -204,7 +208,7 @@ export default function Chart({ symbol }: Props) {
           { time: z.endTime, value: z.low },
         ]);
 
-        liquidityZonesRef.current.push(rectTop, rectBottom, topLine, bottomLine);
+        liquidityZonesRef.current.push(rectBottom, topLine, bottomLine);
       });
     };
 
@@ -285,8 +289,8 @@ export default function Chart({ symbol }: Props) {
         const isBullish = bb.type === "BULLISH_BREAKER";
 
         const rectColor = isBullish
-          ? "rgba(0, 150, 255, 0.20)" // azul institucional
-          : "rgba(255, 140, 0, 0.20)"; // naranja institucional
+          ? "rgba(0, 150, 255, 0.20)"
+          : "rgba(255, 140, 0, 0.20)";
 
         const lineColor = isBullish
           ? "rgba(0, 150, 255, 1)"
@@ -339,8 +343,6 @@ export default function Chart({ symbol }: Props) {
         breakerBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
       });
     };
-    };
-
     // === FETCH INDICATORS ===
     const fetchIndicators = async () => {
       const res = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
