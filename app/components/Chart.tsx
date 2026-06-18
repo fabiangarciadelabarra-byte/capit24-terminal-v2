@@ -18,9 +18,6 @@ export default function Chart({ symbol }: Props) {
   const orderBlocksRef = useRef<any[]>([]);
   const breakerBlocksRef = useRef<any[]>([]);
 
-  // === BOS / CHoCH ===
-  const bosChochRef = useRef<any[]>([]);
-
   const [tf, setTf] = useState("15");
 
   useEffect(() => {
@@ -344,113 +341,6 @@ export default function Chart({ symbol }: Props) {
         breakerBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
       });
     };
-
-    // === DRAW BOS / CHoCH ===
-    const drawBosChoch = (events: any[], candles: any[]) => {
-      bosChochRef.current.forEach((e) => e.remove());
-      bosChochRef.current = [];
-
-      if (!events || events.length === 0 || candles.length === 0) return;
-
-      const firstTime = candles[0].time;
-      const lastTime = candles[candles.length - 1].time;
-
-      events.forEach((ev) => {
-        const color =
-          ev.type === "BOS_UP"
-            ? "#00FF00"
-            : ev.type === "BOS_DOWN"
-            ? "#FF0000"
-            : ev.type === "CHOCH_UP"
-            ? "#00BFFF"
-            : "#FFA500";
-
-        const line = mainChart.addLineSeries({
-          color,
-          lineWidth: 2,
-          priceLineVisible: false,
-        });
-
-        line.setData([
-          { time: firstTime, value: ev.level },
-          { time: lastTime, value: ev.level },
-        ]);
-
-        bosChochRef.current.push(line);
-
-        const label = mainChart.addLineSeries({
-          color: "transparent",
-          lineWidth: 1,
-          lastValueVisible: false,
-          priceLineVisible: false,
-        });
-
-        label.setData([{ time: ev.time, value: ev.level }]);
-
-        label.applyOptions({
-          title:
-            ev.type === "BOS_UP"
-              ? "BOS ↑"
-              : ev.type === "BOS_DOWN"
-              ? "BOS ↓"
-              : ev.type === "CHOCH_UP"
-              ? "CHoCH ↑"
-              : "CHoCH ↓",
-          color,
-        });
-
-        bosChochRef.current.push(label);
-      });
-    };
-
-    // === DETECT BOS / CHoCH ===
-    const detectBosChoch = (candles: any[], swingHighs: any[], swingLows: any[]) => {
-      const events: any[] = [];
-      let trend: "bullish" | "bearish" | "none" = "none";
-
-      for (let i = 1; i < candles.length; i++) {
-        const c = candles[i];
-
-        const brokenHigh = swingHighs?.find((h: any) => c.high > h.value);
-        if (brokenHigh) {
-          if (trend === "bearish" || trend === "none") {
-            events.push({
-              type: "CHOCH_UP",
-              level: brokenHigh.value,
-              time: c.time,
-            });
-            trend = "bullish";
-          } else {
-            events.push({
-              type: "BOS_UP",
-              level: brokenHigh.value,
-              time: c.time,
-            });
-          }
-        }
-
-        const brokenLow = swingLows?.find((l: any) => c.low < l.value);
-        if (brokenLow) {
-          if (trend === "bullish" || trend === "none") {
-            events.push({
-              type: "CHOCH_DOWN",
-              level: brokenLow.value,
-              time: c.time,
-            });
-            trend = "bearish";
-          } else {
-            events.push({
-              type: "BOS_DOWN",
-              level: brokenLow.value,
-              time: c.time,
-            });
-          }
-        }
-      }
-
-      return events;
-    };
-      return events;
     };
 
     // === FETCH INDICATORS ===
@@ -471,11 +361,6 @@ export default function Chart({ symbol }: Props) {
       macdLineSeries.setData(json.macd.macdLine);
       signalSeries.setData(json.macd.signal);
       histogramSeries.setData(json.macd.histogram);
-
-      if (json.swingHighs && json.swingLows) {
-        const events = detectBosChoch(json.candles, json.swingHighs, json.swingLows);
-        drawBosChoch(events, json.candles);
-      }
     };
 
     // === FETCH SIGNALS ===
