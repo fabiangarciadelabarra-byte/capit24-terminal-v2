@@ -450,6 +450,8 @@ export default function Chart({ symbol }: Props) {
 
       return events;
     };
+      return events;
+    };
 
     // === FETCH INDICATORS ===
     const fetchIndicators = async () => {
@@ -542,7 +544,6 @@ export default function Chart({ symbol }: Props) {
 
       if (!candleJson.candles) return;
 
-      drawOrderBlocks(json.blocks, candleJson
       drawOrderBlocks(json.blocks, candleJson.candles);
     };
 
