@@ -2,29 +2,71 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Chart,
-  LineSeries,
-  AreaSeries,
-  Axis,
-  Tooltip,
-} from "react-charts";
+  createChart,
+  ColorType,
+  ISeriesApi,
+  LineData,
+} from "lightweight-charts";
 
 interface PricePoint {
   time: number;
   price: number;
 }
 
-export default function RealTimeChart({ symbol = "BINANCE:BTCUSDT" }) {
+export default function Chart({ symbol = "BINANCE:BTCUSDT" }) {
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+
+  const wsRef = useRef<WebSocket | null>(null);
+  const dataBuffer = useRef<LineData[]>([]);
+
   const [connected, setConnected] = useState(false);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
 
-  // Buffer circular de datos
-  const dataRef = useRef<PricePoint[]>([]);
-  const chartDataRef = useRef([{ label: "Price", data: [] as PricePoint[] }]);
+  // -----------------------------
+  // 🔥 Crear el chart una sola vez
+  // -----------------------------
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
 
-  const [, forceRender] = useState({}); // Para refrescar el chart sin re-renderizar todo
+    chartRef.current = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: 500,
+      layout: {
+        background: { type: ColorType.Solid, color: "#000000" },
+        textColor: "#FFFFFF",
+      },
+      grid: {
+        vertLines: { color: "#222" },
+        horzLines: { color: "#222" },
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: true,
+      },
+    });
 
-  const wsRef = useRef<WebSocket | null>(null);
+    seriesRef.current = chartRef.current.addLineSeries({
+      color: "#4ade80",
+      lineWidth: 2,
+    });
+
+    const handleResize = () => {
+      if (chartRef.current && chartContainerRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chartRef.current?.remove();
+    };
+  }, []);
 
   // -----------------------------
   // 🔥 WebSocket Finnhub
@@ -47,28 +89,20 @@ export default function RealTimeChart({ symbol = "BINANCE:BTCUSDT" }) {
 
         if (json.type === "trade" && json.data?.length > 0) {
           const price = json.data[0].p;
-          const time = json.data[0].t;
+          const time = Math.floor(json.data[0].t / 1000);
 
           setLastPrice(price);
 
-          // Guardar en buffer
-          dataRef.current.push({ time, price });
+          const point: LineData = { time, value: price };
+          dataBuffer.current.push(point);
 
           // Mantener solo los últimos 800 puntos
-          if (dataRef.current.length > 800) {
-            dataRef.current.shift();
+          if (dataBuffer.current.length > 800) {
+            dataBuffer.current.shift();
           }
 
-          // Actualizar chartDataRef sin re-renderizar todo
-          chartDataRef.current = [
-            {
-              label: "Price",
-              data: [...dataRef.current],
-            },
-          ];
-
-          // Forzar actualización del chart
-          forceRender({});
+          // Actualizar el chart
+          seriesRef.current?.setData(dataBuffer.current);
         }
       };
 
@@ -85,19 +119,8 @@ export default function RealTimeChart({ symbol = "BINANCE:BTCUSDT" }) {
     };
   }, [symbol]);
 
-  // -----------------------------
-  // ⚙ Configuración del Chart
-  // -----------------------------
-  const primaryAxis = {
-    getValue: (d: PricePoint) => new Date(d.time),
-  };
-
-  const secondaryAxis = {
-    getValue: (d: PricePoint) => d.price,
-  };
-
   return (
-    <div className="w-full h-[500px] bg-black rounded-lg p-4 border border-gray-800">
+    <div className="w-full">
       {/* Estado de conexión */}
       <div className="flex items-center gap-2 mb-2">
         <div
@@ -105,6 +128,7 @@ export default function RealTimeChart({ symbol = "BINANCE:BTCUSDT" }) {
             connected ? "bg-green-500" : "bg-red-500"
           }`}
         ></div>
+
         <span className="text-white text-sm">
           {connected ? "Conectado" : "Reconectando..."}
         </span>
@@ -116,20 +140,11 @@ export default function RealTimeChart({ symbol = "BINANCE:BTCUSDT" }) {
         )}
       </div>
 
-      {/* Chart */}
-      <Chart
-        options={{
-          data: chartDataRef.current,
-          primaryAxis,
-          secondaryAxis,
-          tooltip: true,
-          dark: true,
-        }}
-      >
-        <LineSeries />
-        <AreaSeries />
-        <Tooltip />
-      </Chart>
+      {/* Contenedor del chart */}
+      <div
+        ref={chartContainerRef}
+        className="w-full h-[500px] border border-gray-800 rounded-lg"
+      />
     </div>
   );
 }
