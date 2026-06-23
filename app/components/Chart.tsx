@@ -1,408 +1,135 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createChart, ColorType } from "lightweight-charts";
+import {
+  Chart,
+  LineSeries,
+  AreaSeries,
+  Axis,
+  Tooltip,
+} from "react-charts";
 
-interface Props {
-  symbol: string;
+interface PricePoint {
+  time: number;
+  price: number;
 }
 
-export default function Chart({ symbol }: Props) {
-  const mainRef = useRef<HTMLDivElement>(null);
-  const rsiRef = useRef<HTMLDivElement>(null);
-  const macdRef = useRef<HTMLDivElement>(null);
+export default function RealTimeChart({ symbol = "BINANCE:BTCUSDT" }) {
+  const [connected, setConnected] = useState(false);
+  const [lastPrice, setLastPrice] = useState<number | null>(null);
 
-  const srLinesRef = useRef<any[]>([]);
-  const liquidityZonesRef = useRef<any[]>([]);
-  const orderBlocksRef = useRef<any[]>([]);
-  const breakerBlocksRef = useRef<any[]>([]);
+  // Buffer circular de datos
+  const dataRef = useRef<PricePoint[]>([]);
+  const chartDataRef = useRef([{ label: "Price", data: [] as PricePoint[] }]);
 
-  const [tf, setTf] = useState("15");
+  const [, forceRender] = useState({}); // Para refrescar el chart sin re-renderizar todo
 
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // -----------------------------
+  // 🔥 WebSocket Finnhub
+  // -----------------------------
   useEffect(() => {
-    if (!mainRef.current || !rsiRef.current || !macdRef.current) return;
+    const connect = () => {
+      wsRef.current = new WebSocket(
+        `wss://ws.finnhub.io?token=${process.env.NEXT_PUBLIC_FINNHUB_KEY}`
+      );
 
-    const mainChart = createChart(mainRef.current, {
-      width: mainRef.current.clientWidth,
-      height: 420,
-      layout: {
-        background: { type: ColorType.Solid, color: "#111" },
-        textColor: "white",
-      },
-      grid: {
-        vertLines: { color: "#222" },
-        horzLines: { color: "#222" },
-      },
-      timeScale: { borderColor: "#333" },
-    });
+      wsRef.current.onopen = () => {
+        setConnected(true);
+        wsRef.current?.send(
+          JSON.stringify({ type: "subscribe", symbol })
+        );
+      };
 
-    const candleSeries = mainChart.addCandlestickSeries({
-      upColor: "#0f0",
-      downColor: "#f00",
-      borderUpColor: "#0f0",
-      borderDownColor: "#f00",
-      wickUpColor: "#0f0",
-      wickDownColor: "#f00",
-    });
+      wsRef.current.onmessage = (event) => {
+        const json = JSON.parse(event.data);
 
-    const ema20Series = mainChart.addLineSeries({ color: "#FFD700", lineWidth: 2 });
-    const ema50Series = mainChart.addLineSeries({ color: "#00BFFF", lineWidth: 2 });
-    const ema200Series = mainChart.addLineSeries({ color: "#FF00FF", lineWidth: 2 });
-    const vwapSeries = mainChart.addLineSeries({ color: "#FFFFFF", lineWidth: 2 });
+        if (json.type === "trade" && json.data?.length > 0) {
+          const price = json.data[0].p;
+          const time = json.data[0].t;
 
-    const rsiChart = createChart(rsiRef.current, {
-      width: rsiRef.current.clientWidth,
-      height: 160,
-      layout: {
-        background: { type: ColorType.Solid, color: "#111" },
-        textColor: "white",
-      },
-      grid: {
-        vertLines: { color: "#222" },
-        horzLines: { color: "#222" },
-      },
-      timeScale: { visible: false },
-    });
+          setLastPrice(price);
 
-    const rsiSeries = rsiChart.addLineSeries({ color: "#FFA500", lineWidth: 2 });
+          // Guardar en buffer
+          dataRef.current.push({ time, price });
 
-    const macdChart = createChart(macdRef.current, {
-      width: macdRef.current.clientWidth,
-      height: 180,
-      layout: {
-        background: { type: ColorType.Solid, color: "#111" },
-        textColor: "white",
-      },
-      grid: {
-        vertLines: { color: "#222" },
-        horzLines: { color: "#222" },
-      },
-      timeScale: { borderColor: "#333" },
-    });
+          // Mantener solo los últimos 800 puntos
+          if (dataRef.current.length > 800) {
+            dataRef.current.shift();
+          }
 
-    const macdLineSeries = macdChart.addLineSeries({ color: "#00FF00", lineWidth: 2 });
-    const signalSeries = macdChart.addLineSeries({ color: "#FF0000", lineWidth: 2 });
-    const histogramSeries = macdChart.addHistogramSeries({ color: "#888" });
+          // Actualizar chartDataRef sin re-renderizar todo
+          chartDataRef.current = [
+            {
+              label: "Price",
+              data: [...dataRef.current],
+            },
+          ];
 
-    const drawSR = (supports: number[], resistances: number[], candles: any[]) => {
-      srLinesRef.current.forEach((l) => l.remove());
-      srLinesRef.current = [];
+          // Forzar actualización del chart
+          forceRender({});
+        }
+      };
 
-      if (!candles?.length) return;
-
-      const firstTime = candles[0].time;
-      const lastTime = candles[candles.length - 1].time;
-
-      supports.forEach((lvl) => {
-        const line = mainChart.addLineSeries({ color: "lime", lineWidth: 1, priceLineVisible: false });
-        line.setData([{ time: firstTime, value: lvl }, { time: lastTime, value: lvl }]);
-        srLinesRef.current.push(line);
-      });
-
-      resistances.forEach((lvl) => {
-        const line = mainChart.addLineSeries({ color: "red", lineWidth: 1, priceLineVisible: false });
-        line.setData([{ time: firstTime, value: lvl }, { time: lastTime, value: lvl }]);
-        srLinesRef.current.push(line);
-      });
+      wsRef.current.onclose = () => {
+        setConnected(false);
+        setTimeout(connect, 1500); // reconexión automática
+      };
     };
 
-    const drawLiquidityZones = (zones: any[], candles: any[]) => {
-      liquidityZonesRef.current.forEach((z) => z.remove());
-      liquidityZonesRef.current = [];
+    connect();
 
-      if (!zones?.length || !candles?.length) return;
-
-      zones.forEach((z) => {
-        const color =
-          z.type === "FVG_UP" ? "rgba(255,215,0,0.25)" :
-          z.type === "FVG_DOWN" ? "rgba(255,0,0,0.25)" :
-          z.type === "EQH" ? "rgba(255,0,0,0.35)" :
-          "rgba(0,255,0,0.35)";
-
-        const rectBottom = mainChart.addAreaSeries({
-          topColor: color,
-          bottomColor: color,
-          lineColor: color,
-          lineWidth: 1,
-        });
-
-        rectBottom.setData([
-          { time: z.startTime, value: z.low },
-          { time: z.endTime, value: z.low },
-        ]);
-
-        const topLine = mainChart.addLineSeries({ color, lineWidth: 1 });
-        topLine.setData([
-          { time: z.startTime, value: z.high },
-          { time: z.endTime, value: z.high },
-        ]);
-
-        const bottomLine = mainChart.addLineSeries({ color, lineWidth: 1 });
-        bottomLine.setData([
-          { time: z.startTime, value: z.low },
-          { time: z.endTime, value: z.low },
-        ]);
-
-        liquidityZonesRef.current.push(rectBottom, topLine, bottomLine);
-      });
+    return () => {
+      wsRef.current?.close();
     };
+  }, [symbol]);
 
-    const drawOrderBlocks = (blocks: any[], candles: any[]) => {
-      orderBlocksRef.current.forEach((b) => b.remove());
-      orderBlocksRef.current = [];
+  // -----------------------------
+  // ⚙ Configuración del Chart
+  // -----------------------------
+  const primaryAxis = {
+    getValue: (d: PricePoint) => new Date(d.time),
+  };
 
-      if (!blocks?.length || !candles?.length) return;
-
-      blocks.forEach((ob) => {
-        const isBullish = ob.type === "BULLISH_OB";
-        const rectColor = isBullish ? "rgba(0,255,0,0.20)" : "rgba(255,0,0,0.20)";
-        const lineColor = isBullish ? "rgba(0,255,0,1)" : "rgba(255,0,0,1)";
-
-        const rectTop = mainChart.addAreaSeries({
-          topColor: rectColor,
-          bottomColor: rectColor,
-          lineColor: rectColor,
-          lineWidth: 1,
-        });
-
-        rectTop.setData([
-          { time: ob.startTime, value: ob.high },
-          { time: ob.endTime, value: ob.high },
-        ]);
-
-        const rectBottom = mainChart.addAreaSeries({
-          topColor: rectColor,
-          bottomColor: rectColor,
-          lineColor: rectColor,
-          lineWidth: 1,
-        });
-
-        rectBottom.setData([
-          { time: ob.startTime, value: ob.low },
-          { time: ob.endTime, value: ob.low },
-        ]);
-
-        const topLine = mainChart.addLineSeries({ color: lineColor, lineWidth: 1 });
-        topLine.setData([
-          { time: ob.startTime, value: ob.high },
-          { time: ob.endTime, value: ob.high },
-        ]);
-
-        const bottomLine = mainChart.addLineSeries({ color: lineColor, lineWidth: 1 });
-        bottomLine.setData([
-          { time: ob.startTime, value: ob.low },
-          { time: ob.endTime, value: ob.low },
-        ]);
-
-        orderBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
-      });
-    };
-
-    const drawBreakerBlocks = (blocks: any[], candles: any[]) => {
-      breakerBlocksRef.current.forEach((b) => b.remove());
-      breakerBlocksRef.current = [];
-
-      if (!blocks?.length || !candles?.length) return;
-
-      blocks.forEach((bb) => {
-        const isBullish = bb.type === "BULLISH_BREAKER";
-        const rectColor = isBullish ? "rgba(0,150,255,0.20)" : "rgba(255,140,0,0.20)";
-        const lineColor = isBullish ? "rgba(0,150,255,1)" : "rgba(255,140,0,1)";
-
-        const rectTop = mainChart.addAreaSeries({
-          topColor: rectColor,
-          bottomColor: rectColor,
-          lineColor: rectColor,
-          lineWidth: 1,
-        });
-
-        rectTop.setData([
-          { time: bb.startTime, value: bb.high },
-          { time: bb.endTime, value: bb.high },
-        ]);
-
-        const rectBottom = mainChart.addAreaSeries({
-          topColor: rectColor,
-          bottomColor: rectColor,
-          lineColor: rectColor,
-          lineWidth: 1,
-        });
-
-        rectBottom.setData([
-          { time: bb.startTime, value: bb.low },
-          { time: bb.endTime, value: bb.low },
-        ]);
-
-        const topLine = mainChart.addLineSeries({ color: lineColor, lineWidth: 1 });
-        topLine.setData([
-          { time: bb.startTime, value: bb.high },
-          { time: bb.endTime, value: bb.high },
-        ]);
-
-        const bottomLine = mainChart.addLineSeries({ color: lineColor, lineWidth: 1 });
-        bottomLine.setData([
-          { time: bb.startTime, value: bb.low },
-          { time: bb.endTime, value: bb.low },
-        ]);
-
-        breakerBlocksRef.current.push(rectTop, rectBottom, topLine, bottomLine);
-      });
-    };
-
-    const fetchIndicators = async () => {
-      const res = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
-      const json = await res.json();
-      if (!json?.candles) return;
-
-      candleSeries.setData(json.candles);
-      ema20Series.setData(json.ema20);
-      ema50Series.setData(json.ema50);
-      ema200Series.setData(json.ema200);
-      vwapSeries.setData(json.vwap);
-
-      rsiSeries.setData(json.rsi14);
-
-      macdLineSeries.setData(json.macd.macdLine);
-      signalSeries.setData(json.macd.signal);
-      histogramSeries.setData(json.macd.histogram);
-    };
-
-    const fetchSignals = async () => {
-      const res = await fetch(`/api/signals?symbol=${symbol}&tf=${tf}`);
-      const json = await res.json();
-      if (!json?.signals) return;
-
-      const markers = json.signals.map((s: any) => ({
-        time: s.time,
-        position: s.type === "BUY" ? "belowBar" : "aboveBar",
-        color: s.type === "BUY" ? "lime" : "red",
-        shape: s.type === "BUY" ? "arrowUp" : "arrowDown",
-        text:
-          s.type +
-          (s.strength === 3
-            ? " (STRONG)"
-            : s.strength === 2
-            ? " (MEDIUM)"
-            : " (WEAK)"),
-      }));
-
-      candleSeries.setMarkers(markers);
-    };
-
-    const fetchSR = async () => {
-      const res = await fetch(`/api/sr?symbol=${symbol}&tf=${tf}`);
-      const json = await res.json();
-      if (!json?.supports || !json?.resistances) return;
-
-      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
-      const candleJson = await candleRes.json();
-      if (!candleJson?.candles) return;
-
-      drawSR(json.supports, json.resistances, candleJson.candles);
-    };
-
-    const fetchLiquidityZones = async () => {
-      const res = await fetch(`/api/liquidity-zones?symbol=${symbol}&tf=${tf}`);
-      const json = await res.json();
-      if (!json?.zones) return;
-
-      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
-      const candleJson = await candleRes.json();
-      if (!candleJson?.candles) return;
-
-      drawLiquidityZones(json.zones, candleJson.candles);
-    };
-
-    const fetchOrderBlocks = async () => {
-      const res = await fetch(`/api/orderblocks?symbol=${symbol}&tf=${tf}`);
-      const json = await res.json();
-      if (!json?.blocks) return;
-
-      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
-      const candleJson = await candleRes.json();
-      if (!candleJson?.candles) return;
-
-      drawOrderBlocks(json.blocks, candleJson.candles);
-    };
-
-    const fetchBreakerBlocks = async () => {
-      const res = await fetch(`/api/breakerblocks?symbol=${symbol}&tf=${tf}`);
-      const json = await res.json();
-      if (!json?.blocks) return;
-
-      const candleRes = await fetch(`/api/indicators?symbol=${symbol}&tf=${tf}`);
-      const candleJson = await candleRes.json();
-      if (!candleJson?.candles) return;
-
-      drawBreakerBlocks(json.blocks, candleJson.candles);
-    };
-
-    fetchIndicators();
-    fetchSignals();
-    fetchSR();
-    fetchLiquidityZones();
-    fetchOrderBlocks();
-    fetchBreakerBlocks();
-
-    const interval = setInterval(() => {
-      fetchIndicators();
-      fetchSignals();
-      fetchSR();
-      fetchLiquidityZones();
-      fetchOrderBlocks();
-      fetchBreakerBlocks();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [symbol, tf]);
+  const secondaryAxis = {
+    getValue: (d: PricePoint) => d.price,
+  };
 
   return (
-    <div style={{ width: "100%", marginTop: "20px" }}>
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          marginBottom: "10px",
-          flexWrap: "wrap",
+    <div className="w-full h-[500px] bg-black rounded-lg p-4 border border-gray-800">
+      {/* Estado de conexión */}
+      <div className="flex items-center gap-2 mb-2">
+        <div
+          className={`w-3 h-3 rounded-full ${
+            connected ? "bg-green-500" : "bg-red-500"
+          }`}
+        ></div>
+        <span className="text-white text-sm">
+          {connected ? "Conectado" : "Reconectando..."}
+        </span>
+
+        {lastPrice && (
+          <span className="ml-auto text-green-400 font-bold text-lg">
+            ${lastPrice.toLocaleString()}
+          </span>
+        )}
+      </div>
+
+      {/* Chart */}
+      <Chart
+        options={{
+          data: chartDataRef.current,
+          primaryAxis,
+          secondaryAxis,
+          tooltip: true,
+          dark: true,
         }}
       >
-        {[
-          { label: "1m", value: "1" },
-          { label: "5m", value: "5" },
-          { label: "15m", value: "15" },
-          { label: "30m", value: "30" },
-          { label: "1h", value: "60" },
-          { label: "2h", value: "120" },
-          { label: "1D", value: "1d" },
-        ].map((t) => (
-          <button
-            key={t.value}
-            onClick={() => setTf(t.value)}
-            style={{
-              padding: "6px 12px",
-              background: tf === t.value ? "#444" : "#222",
-              color: "white",
-              borderRadius: "6px",
-              border: "1px solid #333",
-              cursor: "pointer",
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div ref={mainRef} style={{ width: "100%", height: "420px" }} />
-
-      <div style={{ marginTop: "20px", fontSize: "14px", color: "#aaa" }}>
-        RSI (14)
-      </div>
-      <div ref={rsiRef} style={{ width: "100%", height: "160px" }} />
-
-      <div style={{ marginTop: "20px", fontSize: "14px", color: "#aaa" }}>
-        MACD (12, 26, 9)
-      </div>
-      <div ref={macdRef} style={{ width: "100%", height: "180px" }} />
+        <LineSeries />
+        <AreaSeries />
+        <Tooltip />
+      </Chart>
     </div>
   );
 }
