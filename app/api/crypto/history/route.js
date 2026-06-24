@@ -22,28 +22,39 @@ export async function GET(request) {
       );
     }
 
-    // Binance devuelve texto, no JSON directo
     const raw = await response.text();
     let data;
 
     try {
       data = JSON.parse(raw);
-    } catch (e) {
+    } catch {
+      // Si no es JSON, devuelve texto plano
       return new Response(
         JSON.stringify({
-          error: "Respuesta inválida desde Binance",
+          error: "Respuesta no válida desde Binance",
           raw
         }),
         { status: 500 }
       );
     }
 
-    // Si Binance devuelve un objeto con 'data', usa ese array
+    // Si es string o no tiene formato esperado
+    if (typeof data === "string") {
+      return new Response(
+        JSON.stringify({
+          error: "Binance devolvió texto en lugar de JSON",
+          details: data
+        }),
+        { status: 500 }
+      );
+    }
+
+    // Si tiene propiedad 'data' y es array
     if (data && Array.isArray(data.data)) {
       data = data.data;
     }
 
-    // Validación final
+    // Si no es array, devuelve error con contenido
     if (!Array.isArray(data)) {
       return new Response(
         JSON.stringify({
@@ -54,7 +65,7 @@ export async function GET(request) {
       );
     }
 
-    // Conversión de velas
+    // Procesar velas
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
       open: parseFloat(c[1]),
