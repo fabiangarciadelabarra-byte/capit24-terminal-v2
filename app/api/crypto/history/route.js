@@ -22,10 +22,34 @@ export async function GET(request) {
       );
     }
 
-    // FIX: Binance devuelve texto, no JSON directo
+    // Binance devuelve texto, no JSON directo
     const raw = await response.text();
-    const data = JSON.parse(raw);
+    let data;
 
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      return new Response(
+        JSON.stringify({
+          error: "Respuesta inválida desde Binance",
+          raw
+        }),
+        { status: 500 }
+      );
+    }
+
+    // VALIDACIÓN CRÍTICA: Binance puede devolver un objeto de error
+    if (!Array.isArray(data)) {
+      return new Response(
+        JSON.stringify({
+          error: "Binance devolvió un formato inesperado",
+          details: data
+        }),
+        { status: 500 }
+      );
+    }
+
+    // Conversión de velas
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
       open: parseFloat(c[1]),
