@@ -3,7 +3,8 @@
 import { useChartSettings } from "../hooks/useChartSettings";
 import SymbolSelector from "../components/SymbolSelector";
 import TimeframeSelector from "../components/TimeframeSelector";
-import RealtimeCandleChart from "../components/RealtimeCandleChart";
+
+import Chart from "../components/Chart";
 
 import TickerBTC from "../components/TickerBTC";
 import OrderbookBTC from "../components/OrderbookBTC";
@@ -15,12 +16,12 @@ export default function TerminalPage() {
 
   return (
     <main style={{ padding: "2rem" }}>
-      <h1>Capit24 Terminal — {symbol.toUpperCase()}</h1>
+      <h1>Capit24 Terminal - {symbol.toUpperCase()}</h1>
 
       <SymbolSelector symbol={symbol} setSymbol={setSymbol} />
       <TimeframeSelector timeframe={timeframe} setTimeframe={setTimeframe} />
 
-      <RealtimeCandleChart symbol={symbol} timeframe={timeframe} />
+      <Chart symbol={symbol} />
 
       <TickerBTC />
       <OrderbookBTC />
