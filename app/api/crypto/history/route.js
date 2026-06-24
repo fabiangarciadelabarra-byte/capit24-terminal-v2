@@ -38,7 +38,12 @@ export async function GET(request) {
       );
     }
 
-    // VALIDACIÓN CRÍTICA: Binance puede devolver un objeto de error
+    // Si Binance devuelve un objeto con 'data', usa ese array
+    if (data && Array.isArray(data.data)) {
+      data = data.data;
+    }
+
+    // Validación final
     if (!Array.isArray(data)) {
       return new Response(
         JSON.stringify({
