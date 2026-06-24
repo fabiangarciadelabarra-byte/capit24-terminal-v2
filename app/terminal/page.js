@@ -9,7 +9,7 @@ import Chart from "../components/Chart";
 import TickerBTC from "../components/TickerBTC";
 import OrderbookBTC from "../components/OrderbookBTC";
 import TradesBTC from "../components/TradesBTC";
-import KlineBTC from "../components/KlineBTC";
+// import KlineBTC from "../components/KlineBTC"; // REMOVIDO PARA QUE NO TAPE EL CHART
 
 export default function TerminalPage() {
   const { symbol, timeframe, setSymbol, setTimeframe } = useChartSettings();
@@ -21,12 +21,16 @@ export default function TerminalPage() {
       <SymbolSelector symbol={symbol} setSymbol={setSymbol} />
       <TimeframeSelector timeframe={timeframe} setTimeframe={setTimeframe} />
 
+      {/* CHART PRINCIPAL */}
       <Chart symbol={symbol} />
 
+      {/* MÓDULOS DEL TERMINAL */}
       <TickerBTC />
       <OrderbookBTC />
       <TradesBTC />
-      <KlineBTC />
+
+      {/* KlineBTC removido temporalmente */}
+      {/* <KlineBTC /> */}
     </main>
   );
 }
