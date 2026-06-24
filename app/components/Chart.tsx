@@ -93,7 +93,13 @@ export default function Chart({ symbol = "BINANCE:BTCUSDT" }) {
 
           setLastPrice(price);
 
-          const point: LineData = { time, value: price };
+          import { UTCTimestamp } from "lightweight-charts";
+
+const point: LineData = {
+  time: (time as UTCTimestamp),
+  value: price
+};
+
           dataBuffer.current.push(point);
 
           // Mantener solo los últimos 800 puntos
