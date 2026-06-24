@@ -4,75 +4,54 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const symbol = searchParams.get("symbol") || "BTCUSDT";
+    const symbol = (searchParams.get("symbol") || "BTC").toLowerCase();
     const interval = searchParams.get("interval") || "1h";
-    const limit = searchParams.get("limit") || "200";
 
-    const url = `https://binance-proxy.fabiangarciadelabarra.workers.dev/?endpoint=/api/v3/klines&symbol=${symbol}&interval=${interval}&limit=${limit}`;
+    // CoinGecko solo acepta días, no límites exactos
+    const daysMap = {
+      "1m": 1,
+      "5m": 1,
+      "15m": 1,
+      "30m": 1,
+      "1h": 1,
+      "4h": 7,
+      "1d": 30
+    };
+
+    const days = daysMap[interval] || 1;
+
+    const url = `https://api.coingecko.com/api/v3/coins/${symbol}/ohlc?vs_currency=usd&days=${days}`;
 
     const response = await fetch(url);
 
     if (!response.ok) {
       return new Response(
         JSON.stringify({
-          error: "Error al obtener histórico desde Binance (Proxy)",
+          error: "Error al obtener OHLC desde CoinGecko",
           status: response.status
         }),
         { status: 500 }
       );
     }
 
-    const raw = await response.text();
-    let data;
+    const data = await response.json();
 
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      // Si no es JSON, devuelve texto plano
-      return new Response(
-        JSON.stringify({
-          error: "Respuesta no válida desde Binance",
-          raw
-        }),
-        { status: 500 }
-      );
-    }
-
-    // Si es string o no tiene formato esperado
-    if (typeof data === "string") {
-      return new Response(
-        JSON.stringify({
-          error: "Binance devolvió texto en lugar de JSON",
-          details: data
-        }),
-        { status: 500 }
-      );
-    }
-
-    // Si tiene propiedad 'data' y es array
-    if (data && Array.isArray(data.data)) {
-      data = data.data;
-    }
-
-    // Si no es array, devuelve error con contenido
     if (!Array.isArray(data)) {
       return new Response(
         JSON.stringify({
-          error: "Binance devolvió un formato inesperado",
+          error: "CoinGecko devolvió un formato inesperado",
           details: data
         }),
         { status: 500 }
       );
     }
 
-    // Procesar velas
     const candles = data.map(c => ({
       time: Math.floor(c[0] / 1000),
-      open: parseFloat(c[1]),
-      high: parseFloat(c[2]),
-      low: parseFloat(c[3]),
-      close: parseFloat(c[4]),
-      volume: parseFloat(c[5])
+      open: c[1],
+      high: c[2],
+      low: c[3],
+      close: c[4]
     }));
 
     return new Response(JSON.stringify(candles), {
