@@ -8,14 +8,19 @@ import {
   UTCTimestamp,
 } from "lightweight-charts";
 
-export default function Chart({ symbol }) {
-  const chartContainerRef = useRef(null);
-  const seriesRef = useRef(null);
-  const wsRef = useRef(null);
+interface ChartProps {
+  symbol: string;
+}
+
+export default function Chart({ symbol }: ChartProps) {
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const seriesRef = useRef<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const dataBuffer = useRef<LineData[]>([]);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [connected, setConnected] = useState(false);
 
+  // Crear el chart
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -44,7 +49,7 @@ export default function Chart({ symbol }) {
 
     const handleResize = () => {
       chart.applyOptions({
-        width: chartContainerRef.current.clientWidth,
+        width: chartContainerRef.current?.clientWidth || 400,
       });
     };
 
@@ -56,6 +61,7 @@ export default function Chart({ symbol }) {
     };
   }, []);
 
+  // WebSocket
   useEffect(() => {
     if (!symbol) return;
 
