@@ -16,11 +16,9 @@ export default function Chart({ symbol }: ChartProps) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const seriesRef = useRef<any>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const dataBuffer = useRef<LineData[]>([]);
-  const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [connected, setConnected] = useState(false);
 
-  // Crear el chart
+  // 1) CREAR EL CHART
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -61,7 +59,25 @@ export default function Chart({ symbol }: ChartProps) {
     };
   }, []);
 
-  // WebSocket
+  // 2) CARGAR DATOS HISTÓRICOS INICIALES
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const res = await fetch(`/api/crypto/history?symbol=${symbol}`);
+        const history: LineData[] = await res.json();
+
+        if (history && history.length > 0) {
+          seriesRef.current?.setData(history);
+        }
+      } catch (err) {
+        console.error("Error cargando historial:", err);
+      }
+    }
+
+    loadHistory();
+  }, [symbol]);
+
+  // 3) WEBSOCKET EN VIVO
   useEffect(() => {
     if (!symbol) return;
 
@@ -84,20 +100,13 @@ export default function Chart({ symbol }: ChartProps) {
         const price = json.data[0].p;
         const time = Math.floor(json.data[0].t / 1000);
 
-        setLastPrice(price);
-
         const point: LineData = {
           time: time as UTCTimestamp,
           value: price,
         };
 
-        dataBuffer.current.push(point);
-
-        if (dataBuffer.current.length > 800) {
-          dataBuffer.current.shift();
-        }
-
-        seriesRef.current?.setData(dataBuffer.current);
+        // Actualizar incrementalmente
+        seriesRef.current?.update(point);
       }
     };
 
@@ -117,9 +126,6 @@ export default function Chart({ symbol }: ChartProps) {
       />
 
       <div style={{ marginTop: "10px", color: "#FFF" }}>
-        <strong>Último precio:</strong>{" "}
-        {lastPrice ? `$${lastPrice}` : "Cargando..."}  
-        <br />
         <strong>WebSocket:</strong>{" "}
         {connected ? "🟢 Conectado" : "🔴 Desconectado"}
       </div>
