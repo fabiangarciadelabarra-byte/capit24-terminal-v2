@@ -19,9 +19,9 @@ async function fetchFromTradingEconomics(): Promise<any | null> {
     const item = data[0];
 
     return {
-      monthly: item.Monthly || null,
-      annual: item.Yearly || null,
-      lastUpdate: item.LastUpdate || null,
+      monthly: null, // TE no da mensual
+      annual: item.LatestValue || null,
+      lastUpdate: item.Date || null,
       source: "TradingEconomics",
     };
   } catch {
@@ -34,7 +34,6 @@ async function fetchFromTradingEconomics(): Promise<any | null> {
 // -----------------------------
 async function fetchFromBCRP(): Promise<any | null> {
   try {
-    // API pública del BCRP (inflación mensual)
     const url =
       "https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PN01273PM/json";
 
@@ -42,14 +41,14 @@ async function fetchFromBCRP(): Promise<any | null> {
     if (!res.ok) return null;
 
     const json = await res.json();
-    const series = json?.periods;
+    const series = json?.data;
     if (!series || series.length === 0) return null;
 
     const last = series[0];
 
     return {
       monthly: parseFloat(last.value) || null,
-      annual: null, // BCRP no siempre da anual directo
+      annual: null,
       lastUpdate: last.date || null,
       source: "BCRP",
     };
@@ -70,10 +69,9 @@ async function fetchFromWorldBank(): Promise<any | null> {
     if (!res.ok) return null;
 
     const json = await res.json();
-    const data = json?.[1];
-    if (!data || data.length === 0) return null;
+    if (!json?.[1] || json[1].length === 0) return null;
 
-    const last = data[0];
+    const last = json[1][0];
 
     return {
       annual: last.value || null,
@@ -89,7 +87,6 @@ async function fetchFromWorldBank(): Promise<any | null> {
 // 4. Handler principal
 // -----------------------------
 export async function GET() {
-  // 1. TradingEconomics
   const te = await fetchFromTradingEconomics();
   if (te) {
     return NextResponse.json({
@@ -98,13 +95,9 @@ export async function GET() {
     });
   }
 
-  // 2. BCRP
   const bcrp = await fetchFromBCRP();
-
-  // 3. Banco Mundial (solo anual)
   const wb = await fetchFromWorldBank();
 
-  // Normalización
   const inflation = {
     monthly: bcrp?.monthly ?? null,
     annual: wb?.annual ?? bcrp?.annual ?? null,
