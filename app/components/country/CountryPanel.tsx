@@ -2,6 +2,7 @@
 
 import InflationPanel from "./InflationPanel";
 import GDPPanel from "./GDPPanel";
+import InterestRatePanel from "./InterestRatePanel";
 
 export default function CountryPanel({ countryCode }: { countryCode: string }) {
   return (
@@ -42,15 +43,24 @@ export default function CountryPanel({ countryCode }: { countryCode: string }) {
           </div>
         </section>
 
-        {/* Aquí agregaremos los demás módulos macroeconómicos */}
+        {/* 3. Tasa de interés */}
+        <section>
+          <h2 className="text-xl font-semibold mb-3 text-[#4da6ff]">
+            Tasa de Interés
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InterestRatePanel />
+          </div>
+        </section>
+
+        {/* Próximos módulos macroeconómicos */}
         {/*
-        <InterestRatePanel />
         <UnemploymentPanel />
         <ReservesPanel />
         <TradeBalancePanel />
         <DebtPanel />
         */}
-
       </div>
     </div>
   );
