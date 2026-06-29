@@ -1,26 +1,36 @@
 "use client";
 
 export default function OrderFlowPanel({ candles }) {
-  if (!candles || candles.length === 0) return null;
+  if (!Array.isArray(candles) || candles.length === 0) return null;
+
+  // Asegurar que cada vela tenga valores válidos
+  const safeCandles = candles.map((c) => ({
+    open: Number(c.open ?? 0),
+    close: Number(c.close ?? 0),
+    volume: Number(c.volume ?? 0),
+  }));
 
   // Volumen total
-  const totalVolume = candles.reduce((sum, c) => sum + Number(c.volume || 0), 0);
+  const totalVolume = safeCandles.reduce((sum, c) => sum + c.volume, 0);
+
+  // Evitar división por cero
+  const safeTotal = totalVolume > 0 ? totalVolume : 1;
 
   // Volumen comprador (velas verdes)
-  const buyVolume = candles
-    .filter((c) => Number(c.close) > Number(c.open))
-    .reduce((sum, c) => sum + Number(c.volume || 0), 0);
+  const buyVolume = safeCandles
+    .filter((c) => c.close > c.open)
+    .reduce((sum, c) => sum + c.volume, 0);
 
   // Volumen vendedor (velas rojas)
-  const sellVolume = candles
-    .filter((c) => Number(c.close) < Number(c.open))
-    .reduce((sum, c) => sum + Number(c.volume || 0), 0);
+  const sellVolume = safeCandles
+    .filter((c) => c.close < c.open)
+    .reduce((sum, c) => sum + c.volume, 0);
 
-  const buyPct = ((buyVolume / totalVolume) * 100).toFixed(1);
-  const sellPct = ((sellVolume / totalVolume) * 100).toFixed(1);
+  const buyPct = ((buyVolume / safeTotal) * 100).toFixed(1);
+  const sellPct = ((sellVolume / safeTotal) * 100).toFixed(1);
 
   // Heatmap simple basado en volumen
-  const maxVol = Math.max(...candles.map((c) => Number(c.volume || 0)));
+  const maxVol = Math.max(...safeCandles.map((c) => c.volume), 1);
 
   return (
     <div
@@ -56,9 +66,11 @@ export default function OrderFlowPanel({ candles }) {
           overflowX: "auto",
         }}
       >
-        {candles.map((c, i) => {
-          const intensity = Number(c.volume) / maxVol;
-          const color = `rgba(255, 165, 0, ${intensity})`; // naranja
+        {safeCandles.map((c, i) => {
+          const intensity = c.volume / maxVol;
+          const safeIntensity = isFinite(intensity) ? intensity : 0;
+
+          const color = `rgba(255, 165, 0, ${safeIntensity})`;
 
           return (
             <div

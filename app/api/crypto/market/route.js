@@ -1,27 +1,30 @@
 export async function GET() {
   const url =
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false";
+    "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=100&convert=USD";
 
   try {
     const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0" },
+      headers: {
+        "X-CMC_PRO_API_KEY": process.env.CMC_API_KEY,
+      },
     });
 
-    const data = await response.json();
+    const json = await response.json();
+    const data = json.data;
 
     const formatted = data.map((coin) => ({
-      symbol: coin.symbol.toUpperCase(),
+      symbol: coin.symbol,
       name: coin.name,
-      price: coin.current_price,
-      market_cap: coin.market_cap,
-      volume_24h: coin.total_volume,
-      change_24h: coin.price_change_percentage_24h,
-      image: coin.image,
-      rank: coin.market_cap_rank,
+      price: coin.quote.USD.price,
+      market_cap: coin.quote.USD.market_cap,
+      volume_24h: coin.quote.USD.volume_24h,
+      change_24h: coin.quote.USD.percent_change_24h,
+      rank: coin.cmc_rank,
+      image: `https://s2.coinmarketcap.com/static/img/coins/64x64/${coin.id}.png`,
     }));
 
     return Response.json(formatted);
   } catch (error) {
-    return Response.json({ error: "CoinGecko error", details: error });
+    return Response.json({ error: "CMC error", details: error });
   }
 }

@@ -1,22 +1,40 @@
 "use client";
 
 export default function LiquidityMapPanel({ candles }) {
-  if (!candles || candles.length === 0) return null;
+  if (!Array.isArray(candles) || candles.length === 0) return null;
+
+  // Asegurar valores válidos
+  const safeCandles = candles.map((c) => ({
+    high: Number(c.high ?? 0),
+    low: Number(c.low ?? 0),
+    open: Number(c.open ?? 0),
+    close: Number(c.close ?? 0),
+  }));
 
   // Extraer precios relevantes
-  const levels = candles.flatMap((c) => [
-    Number(c.high),
-    Number(c.low),
-    Number(c.open),
-    Number(c.close),
+  const levels = safeCandles.flatMap((c) => [
+    c.high,
+    c.low,
+    c.open,
+    c.close,
   ]);
+
+  // Filtrar NaN
+  const cleanLevels = levels.filter((p) => Number.isFinite(p));
+
+  if (cleanLevels.length === 0) return null;
 
   // Agrupar niveles cercanos (±0.3%)
   const grouped = [];
   const threshold = 0.003; // 0.3%
 
-  levels.forEach((price) => {
-    const existing = grouped.find((g) => Math.abs(g.level - price) / price < threshold);
+  cleanLevels.forEach((price) => {
+    const existing = grouped.find(
+      (g) =>
+        price !== 0 &&
+        Math.abs(g.level - price) / price < threshold
+    );
+
     if (existing) {
       existing.touches++;
     } else {
@@ -30,7 +48,7 @@ export default function LiquidityMapPanel({ candles }) {
   // Tomar los 12 niveles más relevantes
   const topLevels = sorted.slice(0, 12);
 
-  const maxTouches = Math.max(...topLevels.map((l) => l.touches));
+  const maxTouches = Math.max(...topLevels.map((l) => l.touches), 1);
 
   return (
     <div
@@ -51,7 +69,7 @@ export default function LiquidityMapPanel({ candles }) {
       <div style={{ marginTop: "20px" }}>
         {topLevels.map((lvl, i) => {
           const intensity = lvl.touches / maxTouches;
-          const color = `rgba(0, 150, 255, ${intensity})`;
+          const safeIntensity = isFinite(intensity) ? intensity : 0;
 
           return (
             <div
@@ -61,10 +79,15 @@ export default function LiquidityMapPanel({ candles }) {
                 padding: "8px",
                 background: "#222",
                 borderRadius: "6px",
-                borderLeft: `6px solid ${color}`,
+                borderLeft: `6px solid rgba(0, 150, 255, ${safeIntensity})`,
               }}
             >
-              <strong>{lvl.level.toLocaleString()}</strong> — {lvl.touches} toques
+              <strong>
+                {Number.isFinite(lvl.level)
+                  ? lvl.level.toLocaleString()
+                  : "-"}
+              </strong>{" "}
+              — {lvl.touches} toques
             </div>
           );
         })}

@@ -1,31 +1,27 @@
 export async function GET() {
   try {
-    // Fear & Greed Index (Alternative.me)
-    const fearRes = await fetch("https://api.alternative.me/fng/");
-    const fearData = await fearRes.json();
+    // Fear & Greed Index
+    const fgRes = await fetch("https://api.alternative.me/fng/?limit=1");
+    const fgData = await fgRes.json();
+    const fearGreed = fgData.data?.[0] || null;
 
-    const fearValue = fearData?.data?.[0]?.value || "50";
-    const fearClassification = fearData?.data?.[0]?.value_classification || "Neutral";
+    // Funding Rate (Binance Futures)
+    const fundingRes = await fetch("https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT");
+    const fundingData = await fundingRes.json();
 
-    // Social Sentiment (LunarCrush - endpoint público)
-    const socialRes = await fetch("https://api.lunarcrush.com/v2?data=market");
-    const socialData = await socialRes.json();
-
-    const socialScore = socialData?.data?.[0]?.galaxy_score || 50;
+    // Open Interest (Binance Futures)
+    const oiRes = await fetch("https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=5m&limit=1");
+    const oiData = await oiRes.json();
+    const openInterest = oiData?.[0] || null;
 
     return Response.json({
-      fear_greed: {
-        value: fearValue,
-        classification: fearClassification,
-      },
-      social: {
-        galaxy_score: socialScore,
-      },
+      fearGreed,
+      fundingRate: fundingData.lastFundingRate,
+      nextFundingTime: fundingData.nextFundingTime,
+      openInterest
     });
-  } catch (error) {
-    return Response.json({
-      fear_greed: { value: "50", classification: "Neutral" },
-      social: { galaxy_score: 50 },
-    });
+  } catch (err) {
+    console.error("Error fetching sentiment:", err);
+    return Response.json({ error: "Failed to fetch sentiment" }, { status: 500 });
   }
 }
