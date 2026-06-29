@@ -43,8 +43,8 @@ export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: 
       <ComposableMap projection="geoMercator">
         <ZoomableGroup zoom={1} minZoom={1} maxZoom={8}>
           <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
-            {({ geographies }) =>
-              geographies.map((geo) => {
+            {({ geographies }: { geographies: any[] }) =>
+              geographies.map((geo: any) => {
                 const name = geo.properties.NAME;
                 const code = geo.properties.ISO_A2;
 
