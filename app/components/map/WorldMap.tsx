@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
-import ReactTooltip from "react-tooltip";
+import { Tooltip as ReactTooltip } from "react-tooltip";
 import { animated, useSpring } from "react-spring";
 
-// Ejemplo de datos económicos (luego se conectan a tus APIs reales)
-const inflationData = {
+// Datos de ejemplo (luego los conectamos a tus APIs reales)
+const inflationData: Record<string, number> = {
   PE: 3.2,
   AR: 140,
   US: 3.1,
@@ -15,24 +15,23 @@ const inflationData = {
   CL: 3.8,
 };
 
-function getColorByInflation(inflation) {
+function getColorByInflation(inflation?: number) {
   if (!inflation) return "#1a1a1a";
   if (inflation > 50) return "#ff4d4d"; // rojo fuerte
   if (inflation > 10) return "#ff944d"; // naranja
   return "#4dff88"; // verde
 }
 
-export default function WorldMap({ onSelectCountry }) {
-  const [tooltip, setTooltip] = useState("");
+export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: string) => void }) {
   const [darkMode, setDarkMode] = useState(true);
 
   return (
     <div className="relative w-full h-full">
 
-      {/* Tooltip */}
-      <ReactTooltip>{tooltip}</ReactTooltip>
+      {/* Tooltip global */}
+      <ReactTooltip id="country-tooltip" />
 
-      {/* Toggle Dark Mode */}
+      {/* Botón modo oscuro */}
       <button
         onClick={() => setDarkMode(!darkMode)}
         className="absolute top-4 right-4 z-50 bg-[#1a1a1a] text-white px-3 py-2 rounded-lg border border-[#333]"
@@ -61,19 +60,14 @@ export default function WorldMap({ onSelectCountry }) {
                   <animated.g key={geo.rsmKey}>
                     <Geography
                       geography={geo}
-                      data-tip=""
-                      onMouseEnter={() => {
-                        setTooltip(`${name} (${code}) — Inflación: ${inflation || "N/A"}%`);
-                      }}
-                      onMouseLeave={() => {
-                        setTooltip("");
-                      }}
+                      data-tooltip-id="country-tooltip"
+                      data-tooltip-content={`${name} (${code}) — Inflación: ${inflation || "N/A"}%`}
                       onClick={() => {
                         onSelectCountry(code);
 
                         // Integración con tu terminal Capit24
-                        if (window?.Capit24Terminal) {
-                          window.Capit24Terminal.setCountry(code);
+                        if (typeof window !== "undefined" && (window as any).Capit24Terminal) {
+                          (window as any).Capit24Terminal.setCountry(code);
                         }
                       }}
                       style={{
