@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< HEAD
 import { useState } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import { Tooltip as ReactTooltip } from "react-tooltip";
@@ -23,8 +24,13 @@ function getColorByInflation(inflation?: number) {
 
 export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: string) => void }) {
   const [darkMode, setDarkMode] = useState(true);
+=======
+import WorldMap from "../components/map/WorldMap";
+>>>>>>> 1d33f9327384af5d5eab963089541d48b8f279af
 
+export default function Page() {
   return (
+<<<<<<< HEAD
     <div className="relative w-full h-full">
 
       <ReactTooltip id="country-tooltip" />
@@ -82,6 +88,14 @@ export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: 
           </Geographies>
         </ZoomableGroup>
       </ComposableMap>
+=======
+    <div className="w-full h-screen bg-[#0d0d0d] text-white">
+      <WorldMap
+        onSelectCountry={(code) => {
+          console.log("País seleccionado:", code);
+        }}
+      />
+>>>>>>> 1d33f9327384af5d5eab963089541d48b8f279af
     </div>
   );
 }
