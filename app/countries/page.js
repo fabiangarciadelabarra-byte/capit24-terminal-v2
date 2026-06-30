@@ -5,22 +5,19 @@ import { useCountryStore } from "../store/countryStore";
 
 export default function CountriesPage() {
   const countryCode = useCountryStore((state) => state.country);
-  const [countryName, setCountryName] = useState<string | null>(null);
 
-  // Diccionario simple para nombres de países (luego lo reemplazamos con API real)
-  const countryNames: Record<string, string> = {
-    PE: "Perú",
-    AR: "Argentina",
-    US: "Estados Unidos",
-    MX: "México",
-    BR: "Brasil",
-    CL: "Chile",
-  };
+  const [data, setData] = useState(null);
 
   useEffect(() => {
-    if (countryCode) {
-      setCountryName(countryNames[countryCode] || "País desconocido");
+    if (!countryCode) return;
+
+    async function load() {
+      const res = await fetch(`/api/countries/${countryCode}`);
+      const json = await res.json();
+      setData(json);
     }
+
+    load();
   }, [countryCode]);
 
   return (
@@ -29,55 +26,70 @@ export default function CountriesPage() {
       {/* HEADER */}
       <header className="mb-10">
         <h1 className="text-3xl font-bold">Perfil Económico por País</h1>
-        <p className="text-[#999] mt-2">
-          Información macroeconómica detallada por país
-        </p>
+        <p className="text-[#999] mt-2">Datos reales del World Bank</p>
       </header>
 
-      {/* PAÍS SELECCIONADO */}
-      <section className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333] mb-10">
-        <h2 className="text-xl font-semibold">País Seleccionado</h2>
-
-        {countryCode ? (
-          <div className="mt-4">
-            <p className="text-lg">
-              <strong>Código:</strong> {countryCode}
+      {/* ESTADOS */}
+      {!countryCode ? (
+        <p className="text-[#aaa]">
+          Selecciona un país desde el mapa en /worldmap
+        </p>
+      ) : !data ? (
+        <p className="text-[#aaa]">Cargando datos reales...</p>
+      ) : (
+        <>
+          {/* PAÍS */}
+          <section className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333] mb-10">
+            <h2 className="text-xl font-semibold">País Seleccionado</h2>
+            <p className="text-lg mt-4">
+              <strong>Código:</strong> {data.code}
             </p>
-            <p className="text-lg mt-2">
-              <strong>Nombre:</strong> {countryName}
-            </p>
-          </div>
-        ) : (
-          <p className="text-[#aaa] mt-2">
-            Selecciona un país desde el mapa en /worldmap
-          </p>
-        )}
-      </section>
+          </section>
 
-      {/* INDICADORES ECONÓMICOS */}
-      <section>
-        <h2 className="text-2xl font-bold mb-4">Indicadores Económicos</h2>
+          {/* INDICADORES */}
+          <section>
+            <h2 className="text-2xl font-bold mb-4">Indicadores Económicos</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-          <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
-            <h3 className="text-lg font-semibold">Inflación</h3>
-            <p className="text-[#aaa] mt-2">Conectar API World Bank</p>
-          </div>
+              {/* Inflación */}
+              <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+                <h3 className="text-lg font-semibold">Inflación</h3>
+                <p className="text-[#aaa] mt-2">
+                  {data.inflation ?? "N/A"} %
+                </p>
+              </div>
 
-          <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
-            <h3 className="text-lg font-semibold">PIB</h3>
-            <p className="text-[#aaa] mt-2">Conectar API IMF</p>
-          </div>
+              {/* PIB */}
+              <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+                <h3 className="text-lg font-semibold">PIB</h3>
+                <p className="text-[#aaa] mt-2">
+                  {data.gdp ? `$${data.gdp.toLocaleString()}` : "N/A"}
+                </p>
+              </div>
 
-          <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
-            <h3 className="text-lg font-semibold">Tasa de Interés</h3>
-            <p className="text-[#aaa] mt-2">Conectar API OECD</p>
-          </div>
+              {/* Crecimiento */}
+              <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+                <h3 className="text-lg font-semibold">Crecimiento Económico</h3>
+                <p className="text-[#aaa] mt-2">
+                  {data.growth ?? "N/A"} %
+                </p>
+              </div>
 
-        </div>
-      </section>
+              {/* Población */}
+              <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+                <h3 className="text-lg font-semibold">Población</h3>
+                <p className="text-[#aaa] mt-2">
+                  {data.population
+                    ? data.population.toLocaleString()
+                    : "N/A"}
+                </p>
+              </div>
 
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
