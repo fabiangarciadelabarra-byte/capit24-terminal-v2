@@ -1,9 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useCountryStore } from "../store/countryStore";
 
 export default function CountriesPage() {
-  const [selectedCountry, setSelectedCountry] = useState(null);
+  const countryCode = useCountryStore((state) => state.country);
+  const [countryName, setCountryName] = useState<string | null>(null);
+
+  // Diccionario simple para nombres de países (luego lo reemplazamos con API real)
+  const countryNames: Record<string, string> = {
+    PE: "Perú",
+    AR: "Argentina",
+    US: "Estados Unidos",
+    MX: "México",
+    BR: "Brasil",
+    CL: "Chile",
+  };
+
+  useEffect(() => {
+    if (countryCode) {
+      setCountryName(countryNames[countryCode] || "País desconocido");
+    }
+  }, [countryCode]);
 
   return (
     <div className="w-full min-h-screen bg-[#0d0d0d] text-white p-10">
@@ -17,24 +35,26 @@ export default function CountriesPage() {
       </header>
 
       {/* PAÍS SELECCIONADO */}
-      <section className="mb-10">
-        <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
-          <h2 className="text-xl font-semibold">País Seleccionado</h2>
+      <section className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333] mb-10">
+        <h2 className="text-xl font-semibold">País Seleccionado</h2>
 
-          {selectedCountry ? (
-            <div className="mt-4">
-              <p className="text-lg">Código: {selectedCountry}</p>
-              <p className="text-[#aaa] mt-2">Conectar datos reales aquí</p>
-            </div>
-          ) : (
-            <p className="text-[#aaa] mt-2">
-              Selecciona un país desde el mapa en /worldmap
+        {countryCode ? (
+          <div className="mt-4">
+            <p className="text-lg">
+              <strong>Código:</strong> {countryCode}
             </p>
-          )}
-        </div>
+            <p className="text-lg mt-2">
+              <strong>Nombre:</strong> {countryName}
+            </p>
+          </div>
+        ) : (
+          <p className="text-[#aaa] mt-2">
+            Selecciona un país desde el mapa en /worldmap
+          </p>
+        )}
       </section>
 
-      {/* INDICADORES */}
+      {/* INDICADORES ECONÓMICOS */}
       <section>
         <h2 className="text-2xl font-bold mb-4">Indicadores Económicos</h2>
 
