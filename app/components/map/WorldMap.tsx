@@ -4,6 +4,9 @@ import { useState } from "react";
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from "react-simple-maps";
 import { Tooltip as ReactTooltip } from "react-tooltip";
 
+// 1️⃣ IMPORTANTE: importar el store global
+import { useCountryStore } from "@/app/store/countryStore";
+
 // Datos de ejemplo
 const inflationData: Record<string, number> = {
   PE: 3.2,
@@ -23,6 +26,9 @@ function getColorByInflation(inflation?: number) {
 
 export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: string) => void }) {
   const [darkMode, setDarkMode] = useState(true);
+
+  // 2️⃣ IMPORTANTE: obtener setCountry del store global
+  const { setCountry } = useCountryStore();
 
   return (
     <div className="relative w-full h-full">
@@ -53,13 +59,16 @@ export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: 
                     geography={geo}
                     data-tooltip-id="country-tooltip"
                     data-tooltip-content={`${name} (${code}) — Inflación: ${inflation || "N/A"}%`}
-                    onClick={() => {
-                      onSelectCountry(code);
 
-                      if (typeof window !== "undefined" && (window as any).Capit24Terminal) {
-                        (window as any).Capit24Terminal.setCountry(code);
-                      }
+                    // 3️⃣ AQUÍ está el onClick actualizado
+                    onClick={() => {
+                      // Guardar país en el store global
+                      setCountry(code);
+
+                      // Mantener tu lógica original
+                      onSelectCountry(code);
                     }}
+
                     style={{
                       default: {
                         fill: fillColor,
@@ -85,4 +94,3 @@ export default function WorldMap({ onSelectCountry }: { onSelectCountry: (code: 
     </div>
   );
 }
-
