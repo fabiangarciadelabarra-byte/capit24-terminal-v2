@@ -16,3 +16,4 @@ export async function GET(req: Request) {
     return Response.json({ error: "Finnhub error", details: err });
   }
 }
+
