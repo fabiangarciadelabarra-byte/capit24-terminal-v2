@@ -1,36 +1,80 @@
 "use client";
 
-import { useChartSettings } from "../hooks/useChartSettings";
-import SymbolSelector from "../components/SymbolSelector";
-import TimeframeSelector from "../components/TimeframeSelector";
-
-import Chart from "../components/Chart";
-
-import TickerBTC from "../components/TickerBTC";
-import OrderbookBTC from "../components/OrderbookBTC";
-import TradesBTC from "../components/TradesBTC";
-// import KlineBTC from "../components/KlineBTC"; // REMOVIDO PARA QUE NO TAPE EL CHART
+import Link from "next/link";
 
 export default function TerminalPage() {
-  const { symbol, timeframe, setSymbol, setTimeframe } = useChartSettings();
-
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1>Capit24 Terminal - {symbol.toUpperCase()}</h1>
+    <div className="w-full min-h-screen bg-[#0d0d0d] text-white p-10">
+      {/* HEADER */}
+      <header className="mb-10">
+        <h1 className="text-4xl font-bold">Capit24 Terminal</h1>
+        <p className="text-[#999] mt-2">
+          Vista principal del terminal financiero
+        </p>
+      </header>
 
-      <SymbolSelector symbol={symbol} setSymbol={setSymbol} />
-      <TimeframeSelector timeframe={timeframe} setTimeframe={setTimeframe} />
+      {/* GRID PRINCIPAL */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* CARD ECONOMICS */}
+        <Link
+          href="/economics"
+          className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333] hover:bg-[#222] transition"
+        >
+          <h2 className="text-xl font-semibold">Economics</h2>
+          <p className="text-[#aaa] mt-2">Indicadores macro globales</p>
+        </Link>
 
-      {/* CHART PRINCIPAL */}
-      <Chart symbol={symbol} />
+        {/* CARD COUNTRIES */}
+        <Link
+          href="/countries"
+          className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333] hover:bg-[#222] transition"
+        >
+          <h2 className="text-xl font-semibold">Countries</h2>
+          <p className="text-[#aaa] mt-2">Perfiles económicos por país</p>
+        </Link>
 
-      {/* MÓDULOS DEL TERMINAL */}
-      <TickerBTC />
-      <OrderbookBTC />
-      <TradesBTC />
+        {/* CARD MARKETS */}
+        <Link
+          href="/markets"
+          className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333] hover:bg-[#222] transition"
+        >
+          <h2 className="text-xl font-semibold">Markets</h2>
+          <p className="text-[#aaa] mt-2">Bolsas, divisas y commodities</p>
+        </Link>
+      </div>
 
-      {/* KlineBTC removido temporalmente */}
-      {/* <KlineBTC /> */}
-    </main>
+      {/* INDICADORES GLOBALES */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold mb-4">Indicadores Globales</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+            <h3 className="text-lg font-semibold">Inflación Global</h3>
+            <p className="text-[#aaa] mt-2">Conectar API del World Bank</p>
+          </div>
+
+          <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+            <h3 className="text-lg font-semibold">PIB Mundial</h3>
+            <p className="text-[#aaa] mt-2">Conectar API del IMF</p>
+          </div>
+
+          <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+            <h3 className="text-lg font-semibold">Tasas de Interés</h3>
+            <p className="text-[#aaa] mt-2">Conectar API OECD</p>
+          </div>
+        </div>
+      </section>
+
+      {/* NOTICIAS */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-bold mb-4">Noticias Financieras</h2>
+
+        <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#333]">
+          <p className="text-[#aaa]">
+            Conectar API de noticias (Finnhub / NewsAPI)
+          </p>
+        </div>
+      </section>
+    </div>
   );
 }
