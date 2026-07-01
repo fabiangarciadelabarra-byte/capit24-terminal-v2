@@ -1,4 +1,4 @@
-export async function GET(req) {
+export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol");
 
@@ -6,16 +6,13 @@ export async function GET(req) {
     return Response.json({ error: "Missing symbol" }, { status: 400 });
   }
 
-  try {
-    // Llamamos a tu Worker seguro en Cloudflare
-    const res = await fetch(`https://capit24.com/api/quote?symbol=${symbol}`);
-    const data = await res.json();
+  const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${process.env.FINNHUB_API_KEY}`;
 
-    return Response.json(data);
-  } catch (error) {
-    return Response.json(
-      { error: "Proxy error", details: error },
-      { status: 500 }
-    );
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    return Response.json(json);
+  } catch (err) {
+    return Response.json({ error: "Finnhub error", details: err });
   }
 }
