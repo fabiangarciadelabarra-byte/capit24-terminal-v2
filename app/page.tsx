@@ -1,13 +1,18 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import PriceCard from "./components/PriceCard";
 import MarketTable from "./components/MarketTable";
 import SearchBar from "./components/SearchBar";
-import Chart from "./components/Chart"; // ← IMPORTANTE
+import dynamic from "next/dynamic";
+
+// Chart solo se carga en el cliente (evita errores en Vercel)
+const Chart = dynamic(() => import("./components/Chart"), {
+  ssr: false,
+});
 
 export default function Home() {
-  const [market, setMarket] = useState<any[]>([]);
+  const [market, setMarket] = useState<any>([]);
   const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC");
 
   // Fetch Market Data
@@ -25,7 +30,7 @@ export default function Home() {
   return (
     <div style={{ padding: "40px" }}>
       <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>
-        Capit24 Terminal
+        Capital24 Terminal
       </h1>
 
       {/* SEARCH BAR */}
@@ -47,21 +52,9 @@ export default function Home() {
         )}
       </div>
 
-      {/* CHART (NUEVO) */}
+      {/* CHART */}
       <div style={{ marginTop: "40px" }}>
         <Chart symbol={selectedSymbol} />
-      </div>
-
-      {/* MARKET TABLE */}
-      <div style={{ marginTop: "40px" }}>
-        <MarketTable
-          data={market}
-          onSelect={(symbol: string) => {
-            setSelectedSymbol(symbol.replace("USDT", ""));
-          }}
-          toggle={() => {}}
-          watchlist={[]}
-        />
       </div>
     </div>
   );
