@@ -6,6 +6,7 @@ import {
   IChartApi,
   LineData,
   Time,
+  LineSeries,
 } from "lightweight-charts";
 
 interface ChartProps {
@@ -41,8 +42,8 @@ export default function Chart({ data }: ChartProps) {
 
     chartRef.current = chart;
 
-    // Crear la serie de línea (API correcta v5)
-    const lineSeries = chart.addLineSeries();
+    // Crear la serie de línea (API unificada v5)
+    const lineSeries = chart.addSeries(LineSeries);
 
     // Estilos
     lineSeries.applyOptions({
