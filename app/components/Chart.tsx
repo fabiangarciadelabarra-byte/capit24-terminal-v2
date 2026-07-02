@@ -41,12 +41,10 @@ export default function Chart({ data }: ChartProps) {
 
     chartRef.current = chart;
 
-    // Crear la serie de línea (API v5)
-    const lineSeries = chart.addSeries({
-      type: "Line",
-    });
+    // Crear la serie de línea (API correcta v5)
+    const lineSeries = chart.addLineSeries();
 
-    // Aplicar estilos (v5 usa applyOptions)
+    // Estilos
     lineSeries.applyOptions({
       color: "#4CAF50",
       lineWidth: 2,
