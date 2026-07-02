@@ -41,9 +41,9 @@ export default function Chart({ data }: ChartProps) {
 
     chartRef.current = chart;
 
-    // Crear la serie de línea (API nueva)
+    // Crear la serie de línea (API nueva v5)
     const lineSeries = chart.addSeries({
-      type: "line",
+      type: "Line",   // ← CORRECTO EN V5
       color: "#4CAF50",
       lineWidth: 2,
     });
