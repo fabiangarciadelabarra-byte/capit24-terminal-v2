@@ -1,61 +1,53 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from "react";
-import PriceCard from "./components/PriceCard";
-import MarketTable from "./components/MarketTable";
-import SearchBar from "./components/SearchBar";
-import dynamic from "next/dynamic";
+import { useState, useEffect } from "react";
+import Chart from "./components/Chart";
 
-// Chart solo se carga en el cliente (evita errores en Vercel)
-const Chart = dynamic(() => import("./components/Chart"), {
-  ssr: false,
-});
+export default function Page() {
+  const [market, setMarket] = useState<any[]>([]);
+  const [selectedSymbol, setSelectedSymbol] = useState("BTC");
 
-export default function Home() {
-  const [market, setMarket] = useState<any>([]);
-  const [selectedSymbol, setSelectedSymbol] = useState<string>("BTC");
-
-  // Fetch Market Data
+  // Obtener datos del mercado
   useEffect(() => {
-    fetch("/api/crypto/market")
-      .then((res) => res.json())
-      .then((data) => setMarket(data));
+    async function fetchMarket() {
+      try {
+        const res = await fetch("/api/market");
+        const data = await res.json();
+        setMarket(data);
+      } catch (error) {
+        console.error("Error fetching market:", error);
+      }
+    }
+
+    fetchMarket();
   }, []);
 
-  // Obtener la cripto seleccionada
+  // Obtener la cripto seleccionada (FIX aplicado)
   const selectedCoin = market.find(
-    (c) => c.symbol.toUpperCase() === selectedSymbol.toUpperCase()
+    (c: any) => c.symbol.toUpperCase() === selectedSymbol.toUpperCase()
   );
 
   return (
-    <div style={{ padding: "40px" }}>
-      <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>
-        Capital24 Terminal
-      </h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Capit24 Terminal</h1>
 
-      {/* SEARCH BAR */}
-      <SearchBar
-        data={market}
-        onSelect={(symbol: string) => {
-          setSelectedSymbol(symbol.replace("USDT", ""));
-        }}
-      />
+      {/* Selector de símbolo */}
+      <select
+        value={selectedSymbol}
+        onChange={(e) => setSelectedSymbol(e.target.value)}
+        className="border p-2 rounded mb-4"
+      >
+        {market.map((coin: any) => (
+          <option key={coin.symbol} value={coin.symbol}>
+            {coin.symbol}
+          </option>
+        ))}
+      </select>
 
-      {/* PRICE CARD */}
-      <div style={{ marginTop: "20px" }}>
-        {selectedCoin && (
-          <PriceCard
-            data={selectedCoin}
-            toggle={() => {}}
-            watchlist={[]}
-          />
-        )}
-      </div>
-
-      {/* CHART */}
-      <div style={{ marginTop: "40px" }}>
-        <Chart symbol={selectedSymbol} />
-      </div>
+      {/* Chart */}
+      {selectedCoin && (
+        <Chart data={selectedCoin.history} />
+      )}
     </div>
   );
 }
