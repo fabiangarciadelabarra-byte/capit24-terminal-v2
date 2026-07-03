@@ -9,28 +9,30 @@ export default function WorldMapPage() {
   const [loading, setLoading] = useState(false);
   const [hoverCountry, setHoverCountry] = useState<string | null>(null);
 
-  // Cargar datos desde tu backend interno
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const res = await fetch(`/worldmap/api/macro/${countryCode}`);
-      const profile = await res.json();
-      setData(profile);
+      try {
+        const res = await fetch(`/worldmap/api/macro/${countryCode}`);
+        const profile = await res.json();
+        setData(profile);
+      } catch (err) {
+        console.error("Error cargando datos:", err);
+      }
       setLoading(false);
     }
-
     load();
   }, [countryCode]);
 
   return (
     <div className="p-6 flex gap-6">
 
-      {/* MAPA MUNDIAL */}
+      {/* MAPA */}
       <div className="w-2/3 relative">
         <h1 className="text-3xl font-bold mb-4">WorldMap</h1>
 
         <ComposableMap projection="geoMercator">
-          <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
+          <Geographies geography="https://raw.githubusercontent.com/zcreativelabs/react-simple-maps/master/topojson-maps/world-110m.json">
             {(geos: { geographies: any[] }) =>
               geos.geographies.map((geo: any) => {
                 const iso = geo.properties.ISO_A2;
@@ -54,8 +56,8 @@ export default function WorldMapPage() {
           </Geographies>
         </ComposableMap>
 
-        {/* TOOLTIP */}
-        {hoverCountry && data && (
+        {/* TOOLTIP SEGURO */}
+        {hoverCountry && data?.macro && (
           <div
             className="absolute bg-white p-3 rounded shadow text-sm pointer-events-none"
             style={{ top: 20, left: 20 }}
@@ -70,11 +72,11 @@ export default function WorldMapPage() {
         )}
       </div>
 
-      {/* PANEL LATERAL */}
+      {/* PANEL LATERAL SEGURO */}
       <div className="w-1/3">
         {loading && <p>Cargando datos...</p>}
 
-        {data && (
+        {data?.macro && (
           <div className="space-y-6">
 
             {/* MACRO */}
@@ -90,34 +92,40 @@ export default function WorldMapPage() {
             </div>
 
             {/* MERCADO */}
-            <div className="border p-4 rounded shadow">
-              <h2 className="text-xl font-semibold mb-2">Mercado</h2>
-              <p><strong>Índice principal:</strong> {data.market.mainIndex.name}</p>
-              <p><strong>Valor:</strong> {data.market.mainIndex.value}</p>
-              <p><strong>Cambio:</strong> {data.market.mainIndex.change}%</p>
-              <p><strong>Volatilidad:</strong> {data.market.volatility}</p>
-              <p><strong>Sentimiento:</strong> {data.market.sentiment}</p>
-            </div>
+            {data.market && (
+              <div className="border p-4 rounded shadow">
+                <h2 className="text-xl font-semibold mb-2">Mercado</h2>
+                <p><strong>Índice principal:</strong> {data.market.mainIndex?.name}</p>
+                <p><strong>Valor:</strong> {data.market.mainIndex?.value}</p>
+                <p><strong>Cambio:</strong> {data.market.mainIndex?.change}%</p>
+                <p><strong>Volatilidad:</strong> {data.market.volatility}</p>
+                <p><strong>Sentimiento:</strong> {data.market.sentiment}</p>
+              </div>
+            )}
 
             {/* SECTORES */}
-            <div className="border p-4 rounded shadow">
-              <h2 className="text-xl font-semibold mb-2">Sectores</h2>
-              <ul className="space-y-2">
-                {data.sectors.map((sector: any, i: number) => (
-                  <li key={i} className="border p-2 rounded">
-                    <strong>{sector.name}</strong> — {sector.performance}% — {sector.risk} — {sector.trend}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {Array.isArray(data.sectors) && (
+              <div className="border p-4 rounded shadow">
+                <h2 className="text-xl font-semibold mb-2">Sectores</h2>
+                <ul className="space-y-2">
+                  {data.sectors.map((sector: any, i: number) => (
+                    <li key={i} className="border p-2 rounded">
+                      <strong>{sector.name}</strong> — {sector.performance}% — {sector.risk} — {sector.trend}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* RECOMENDACIÓN */}
-            <div className="border p-4 rounded shadow">
-              <h2 className="text-xl font-semibold mb-2">Recomendación</h2>
-              <p><strong>Pequeño inversor:</strong> {data.recommendation.smallInvestor}</p>
-              <p><strong>Mediano inversor:</strong> {data.recommendation.mediumInvestor}</p>
-              <p><strong>Gran inversor:</strong> {data.recommendation.largeInvestor}</p>
-            </div>
+            {data.recommendation && (
+              <div className="border p-4 rounded shadow">
+                <h2 className="text-xl font-semibold mb-2">Recomendación</h2>
+                <p><strong>Pequeño inversor:</strong> {data.recommendation.smallInvestor}</p>
+                <p><strong>Mediano inversor:</strong> {data.recommendation.mediumInvestor}</p>
+                <p><strong>Gran inversor:</strong> {data.recommendation.largeInvestor}</p>
+              </div>
+            )}
 
           </div>
         )}
