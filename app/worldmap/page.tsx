@@ -32,7 +32,7 @@ export default function WorldMapPage() {
         <h1 className="text-3xl font-bold mb-4">WorldMap</h1>
 
         <ComposableMap projection="geoMercator">
-          <Geographies geography="https://raw.githubusercontent.com/zcreativelabs/react-simple-maps/master/topojson-maps/world-110m.json">
+          <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
             {(geos: { geographies: any[] }) =>
               geos.geographies.map((geo: any) => {
                 const iso = geo.properties.ISO_A2;
@@ -56,7 +56,7 @@ export default function WorldMapPage() {
           </Geographies>
         </ComposableMap>
 
-        {/* TOOLTIP SEGURO */}
+        {/* TOOLTIP */}
         {hoverCountry && data?.macro && (
           <div
             className="absolute bg-white p-3 rounded shadow text-sm pointer-events-none"
@@ -72,7 +72,7 @@ export default function WorldMapPage() {
         )}
       </div>
 
-      {/* PANEL LATERAL SEGURO */}
+      {/* PANEL LATERAL */}
       <div className="w-1/3">
         {loading && <p>Cargando datos...</p>}
 
