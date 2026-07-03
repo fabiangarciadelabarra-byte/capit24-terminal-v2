@@ -3,6 +3,29 @@
 import { useState, useEffect } from "react";
 import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
+// Conversión ISO3 → ISO2
+const ISO3_TO_ISO2: Record<string, string> = {
+  USA: "US",
+  PER: "PE",
+  BRA: "BR",
+  ARG: "AR",
+  CHL: "CL",
+  MEX: "MX",
+  FRA: "FR",
+  DEU: "DE",
+  ESP: "ES",
+  ITA: "IT",
+  JPN: "JP",
+  CHN: "CN",
+  CAN: "CA",
+  AUS: "AU",
+  GBR: "GB",
+  IND: "IN",
+  RUS: "RU",
+  ZAF: "ZA",
+  KOR: "KR",
+};
+
 export default function WorldMapPage() {
   const [countryCode, setCountryCode] = useState("US");
   const [data, setData] = useState<any>(null);
@@ -35,15 +58,16 @@ export default function WorldMapPage() {
           <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
             {(geos: { geographies: any[] }) =>
               geos.geographies.map((geo: any) => {
-                const iso = geo.properties.ISO_A2;
+                const iso3 = geo.properties.ISO_A3;
+                const iso2 = ISO3_TO_ISO2[iso3];
 
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onMouseEnter={() => setHoverCountry(iso)}
+                    onMouseEnter={() => setHoverCountry(iso2 || iso3)}
                     onMouseLeave={() => setHoverCountry(null)}
-                    onClick={() => setCountryCode(iso)}
+                    onClick={() => iso2 && setCountryCode(iso2)}
                     style={{
                       default: { fill: "#D6D6DA", outline: "none" },
                       hover: { fill: "#F53", outline: "none" },
