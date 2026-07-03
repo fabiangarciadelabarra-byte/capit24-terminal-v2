@@ -37,7 +37,11 @@ export default function WorldMapPage() {
     async function load() {
       setLoading(true);
       try {
-        const res = await fetch(`/worldmap/api/macro/${countryCode}`);
+        // 🔥 LLAMADA ABSOLUTA (soluciona el problema en producción)
+        const res = await fetch(
+          `https://terminal.capit24.com/worldmap/api/macro/${countryCode}`
+        );
+
         const profile = await res.json();
         setData(profile);
       } catch (err) {
