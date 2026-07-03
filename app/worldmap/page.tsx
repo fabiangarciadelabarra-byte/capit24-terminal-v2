@@ -31,8 +31,8 @@ export default function WorldMapPage() {
 
         <ComposableMap projection="geoMercator">
           <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
-            {({ geographies }) =>
-              geographies.map((geo) => {
+            {(geos: { geographies: any[] }) =>
+              geos.geographies.map((geo: any) => {
                 const iso = geo.properties.ISO_A2;
 
                 return (
@@ -56,8 +56,10 @@ export default function WorldMapPage() {
 
         {/* TOOLTIP */}
         {hoverCountry && data && (
-          <div className="absolute bg-white p-3 rounded shadow text-sm pointer-events-none"
-               style={{ top: 20, left: 20 }}>
+          <div
+            className="absolute bg-white p-3 rounded shadow text-sm pointer-events-none"
+            style={{ top: 20, left: 20 }}
+          >
             <p className="font-bold">{hoverCountry}</p>
             <p>PIB: {data.macro.gdpGrowth}%</p>
             <p>Inflación: {data.macro.inflation}%</p>
