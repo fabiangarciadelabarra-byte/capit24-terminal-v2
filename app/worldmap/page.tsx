@@ -1,17 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getCountryProfile } from "./services/getCountryProfile";
+import { ComposableMap, Geographies, Geography } from "react-simple-maps";
 
 export default function WorldMapPage() {
   const [countryCode, setCountryCode] = useState("US");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [hoverCountry, setHoverCountry] = useState<string | null>(null);
 
+  // Cargar datos desde tu backend interno
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const profile = await getCountryProfile(countryCode);
+      const res = await fetch(`/worldmap/api/macro/${countryCode}`);
+      const profile = await res.json();
       setData(profile);
       setLoading(false);
     }
@@ -20,74 +23,103 @@ export default function WorldMapPage() {
   }, [countryCode]);
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-4">WorldMap</h1>
+    <div className="p-6 flex gap-6">
 
-      {/* Selector de país */}
-      <select
-        className="border p-2 rounded mb-4"
-        value={countryCode}
-        onChange={(e) => setCountryCode(e.target.value)}
-      >
-        <option value="US">United States</option>
-        <option value="PE">Peru</option>
-        <option value="BR">Brazil</option>
-        <option value="MX">Mexico</option>
-        <option value="CL">Chile</option>
-        <option value="AR">Argentina</option>
-      </select>
+      {/* MAPA MUNDIAL */}
+      <div className="w-2/3 relative">
+        <h1 className="text-3xl font-bold mb-4">WorldMap</h1>
 
-      {/* Loading */}
-      {loading && <p>Cargando datos...</p>}
+        <ComposableMap projection="geoMercator">
+          <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
+            {({ geographies }) =>
+              geographies.map((geo) => {
+                const iso = geo.properties.ISO_A2;
 
-      {/* Datos */}
-      {data && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    onMouseEnter={() => setHoverCountry(iso)}
+                    onMouseLeave={() => setHoverCountry(null)}
+                    onClick={() => setCountryCode(iso)}
+                    style={{
+                      default: { fill: "#D6D6DA", outline: "none" },
+                      hover: { fill: "#F53", outline: "none" },
+                      pressed: { fill: "#E42", outline: "none" },
+                    }}
+                  />
+                );
+              })
+            }
+          </Geographies>
+        </ComposableMap>
 
-          {/* Macro */}
-          <div className="border p-4 rounded shadow">
-            <h2 className="text-xl font-semibold mb-2">Macro</h2>
-            <p><strong>PIB:</strong> {data.macro.gdpGrowth}%</p>
-            <p><strong>Inflación:</strong> {data.macro.inflation}%</p>
-            <p><strong>Tasa de interés:</strong> {data.macro.interestRate}%</p>
-            <p><strong>Riesgo país:</strong> {data.macro.risk}</p>
-            <p><strong>Deuda:</strong> {data.macro.debt}%</p>
-            <p><strong>Reservas:</strong> {data.macro.reserves}B</p>
-            <p><strong>Rating:</strong> {data.macro.rating}</p>
+        {/* TOOLTIP */}
+        {hoverCountry && data && (
+          <div className="absolute bg-white p-3 rounded shadow text-sm pointer-events-none"
+               style={{ top: 20, left: 20 }}>
+            <p className="font-bold">{hoverCountry}</p>
+            <p>PIB: {data.macro.gdpGrowth}%</p>
+            <p>Inflación: {data.macro.inflation}%</p>
+            <p>Tasa: {data.macro.interestRate}%</p>
+            <p>Riesgo: {data.macro.risk}</p>
+            <p>Rating: {data.macro.rating}</p>
           </div>
+        )}
+      </div>
 
-          {/* Mercado */}
-          <div className="border p-4 rounded shadow">
-            <h2 className="text-xl font-semibold mb-2">Mercado</h2>
-            <p><strong>Índice principal:</strong> {data.market.mainIndex.name}</p>
-            <p><strong>Valor:</strong> {data.market.mainIndex.value}</p>
-            <p><strong>Cambio:</strong> {data.market.mainIndex.change}%</p>
-            <p><strong>Volatilidad:</strong> {data.market.volatility}</p>
-            <p><strong>Sentimiento:</strong> {data.market.sentiment}</p>
+      {/* PANEL LATERAL */}
+      <div className="w-1/3">
+        {loading && <p>Cargando datos...</p>}
+
+        {data && (
+          <div className="space-y-6">
+
+            {/* MACRO */}
+            <div className="border p-4 rounded shadow">
+              <h2 className="text-xl font-semibold mb-2">Macro</h2>
+              <p><strong>PIB:</strong> {data.macro.gdpGrowth}%</p>
+              <p><strong>Inflación:</strong> {data.macro.inflation}%</p>
+              <p><strong>Tasa de interés:</strong> {data.macro.interestRate}%</p>
+              <p><strong>Riesgo país:</strong> {data.macro.risk}</p>
+              <p><strong>Deuda:</strong> {data.macro.debt}%</p>
+              <p><strong>Reservas:</strong> {data.macro.reserves}B</p>
+              <p><strong>Rating:</strong> {data.macro.rating}</p>
+            </div>
+
+            {/* MERCADO */}
+            <div className="border p-4 rounded shadow">
+              <h2 className="text-xl font-semibold mb-2">Mercado</h2>
+              <p><strong>Índice principal:</strong> {data.market.mainIndex.name}</p>
+              <p><strong>Valor:</strong> {data.market.mainIndex.value}</p>
+              <p><strong>Cambio:</strong> {data.market.mainIndex.change}%</p>
+              <p><strong>Volatilidad:</strong> {data.market.volatility}</p>
+              <p><strong>Sentimiento:</strong> {data.market.sentiment}</p>
+            </div>
+
+            {/* SECTORES */}
+            <div className="border p-4 rounded shadow">
+              <h2 className="text-xl font-semibold mb-2">Sectores</h2>
+              <ul className="space-y-2">
+                {data.sectors.map((sector: any, i: number) => (
+                  <li key={i} className="border p-2 rounded">
+                    <strong>{sector.name}</strong> — {sector.performance}% — {sector.risk} — {sector.trend}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* RECOMENDACIÓN */}
+            <div className="border p-4 rounded shadow">
+              <h2 className="text-xl font-semibold mb-2">Recomendación</h2>
+              <p><strong>Pequeño inversor:</strong> {data.recommendation.smallInvestor}</p>
+              <p><strong>Mediano inversor:</strong> {data.recommendation.mediumInvestor}</p>
+              <p><strong>Gran inversor:</strong> {data.recommendation.largeInvestor}</p>
+            </div>
+
           </div>
-
-          {/* Sectores */}
-          <div className="border p-4 rounded shadow md:col-span-2">
-            <h2 className="text-xl font-semibold mb-2">Sectores</h2>
-            <ul className="space-y-2">
-              {data.sectors.map((sector: any, i: number) => (
-                <li key={i} className="border p-2 rounded">
-                  <strong>{sector.name}</strong> — {sector.performance}% — {sector.risk} — {sector.trend}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Recomendación */}
-          <div className="border p-4 rounded shadow md:col-span-2">
-            <h2 className="text-xl font-semibold mb-2">Recomendación</h2>
-            <p><strong>Pequeño inversor:</strong> {data.recommendation.smallInvestor}</p>
-            <p><strong>Mediano inversor:</strong> {data.recommendation.mediumInvestor}</p>
-            <p><strong>Gran inversor:</strong> {data.recommendation.largeInvestor}</p>
-          </div>
-
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
