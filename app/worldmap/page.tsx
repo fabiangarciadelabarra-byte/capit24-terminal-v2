@@ -28,9 +28,10 @@ const ISO3_TO_ISO2: Record<string, string> = {
 
 export default function WorldMapPage() {
   const [countryCode, setCountryCode] = useState("US");
+  const [countryName, setCountryName] = useState("United States");
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [hoverCountry, setHoverCountry] = useState<string | null>(null);
+  const [hoverName, setHoverName] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -53,6 +54,9 @@ export default function WorldMapPage() {
       {/* MAPA */}
       <div className="w-2/3 relative">
         <h1 className="text-3xl font-bold mb-4">WorldMap</h1>
+        <p className="text-lg font-semibold mb-4">
+          País seleccionado: {countryName}
+        </p>
 
         <ComposableMap projection="geoMercator">
           <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
@@ -60,14 +64,20 @@ export default function WorldMapPage() {
               geos.geographies.map((geo: any) => {
                 const iso3 = geo.properties.ISO_A3;
                 const iso2 = ISO3_TO_ISO2[iso3];
+                const name = geo.properties.NAME;
 
                 return (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
-                    onMouseEnter={() => setHoverCountry(iso2 || iso3)}
-                    onMouseLeave={() => setHoverCountry(null)}
-                    onClick={() => iso2 && setCountryCode(iso2)}
+                    onMouseEnter={() => setHoverName(name)}
+                    onMouseLeave={() => setHoverName(null)}
+                    onClick={() => {
+                      if (iso2) {
+                        setCountryCode(iso2);
+                        setCountryName(name);
+                      }
+                    }}
                     style={{
                       default: { fill: "#D6D6DA", outline: "none" },
                       hover: { fill: "#F53", outline: "none" },
@@ -81,12 +91,12 @@ export default function WorldMapPage() {
         </ComposableMap>
 
         {/* TOOLTIP */}
-        {hoverCountry && data?.macro && (
+        {hoverName && data?.macro && (
           <div
             className="absolute bg-white p-3 rounded shadow text-sm pointer-events-none"
             style={{ top: 20, left: 20 }}
           >
-            <p className="font-bold">{hoverCountry}</p>
+            <p className="font-bold">{hoverName}</p>
             <p>PIB: {data.macro.gdpGrowth}%</p>
             <p>Inflación: {data.macro.inflation}%</p>
             <p>Tasa: {data.macro.interestRate}%</p>
@@ -105,7 +115,9 @@ export default function WorldMapPage() {
 
             {/* MACRO */}
             <div className="border p-4 rounded shadow">
-              <h2 className="text-xl font-semibold mb-2">Macro</h2>
+              <h2 className="text-xl font-semibold mb-2">
+                Macro — {countryName}
+              </h2>
               <p><strong>PIB:</strong> {data.macro.gdpGrowth}%</p>
               <p><strong>Inflación:</strong> {data.macro.inflation}%</p>
               <p><strong>Tasa de interés:</strong> {data.macro.interestRate}%</p>
