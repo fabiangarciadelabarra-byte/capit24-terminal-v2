@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+export async function GET(req, { params }) {
+  const country = params.country.toUpperCase();
 
-export async function GET(req: Request, { params }: any) {
-  const { country } = params;
+  const res = await fetch(
+    `https://cold-hill-2663.fabiangarciadelabarra.workers.dev/${country}`
+  );
 
-  const url = `https://cold-hill-2663.fabiangarciadelabarra.workers.dev/${country}`;
-  const res = await fetch(url);
   const data = await res.json();
 
-  return NextResponse.json(data);
+  return Response.json(data);
 }
